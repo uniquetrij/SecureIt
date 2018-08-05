@@ -12,7 +12,10 @@ from io import StringIO
 from PIL import Image
 import matplotlib
 
-from objtect import ObjectInstance, ObjectDetectorInterface
+from objtect import Inference, ObjectDetectorInterface, InstanceType, InferenceBounds
+
+PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
+PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17 = 'ssd_mobilenet_v1_coco_2017_11_17'
 
 matplotlib.use('Agg')  # pylint: disable=multiple-statements
 import matplotlib.pyplot as plt  # pylint: disable=g-import-not-at-top
@@ -26,7 +29,7 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
 
     objectTypes = [None, 'person']
 
-    def __init__(self, model_name = 'ssd_mobilenet_v1_coco_2017_11_17'):
+    def __init__(self, model_name = PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17):
 
         if tf.__version__ < '1.4.0':
             raise ImportError('Please upgrade your tensorflow installation to v1.4.* or later!')
@@ -120,17 +123,14 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
         height, width = image.shape[0], image.shape[1]
         for i in range(len(output_dict['detection_classes'])):
             y_tl, x_tl, y_br, x_br = output_dict['detection_boxes'][i] * [height, width, height, width]
-            path = [[x_tl, y_tl],
-                    [x_tl, y_br],
-                    [x_br, y_br],
-                    [x_br, y_tl]]
+
             try:
                 type = self.objectTypes[output_dict['detection_classes'][i]]
             except:
                 type = 'unknown'
-            decisionInstances.append(ObjectInstance(type,
-                                                    output_dict['detection_scores'][i],
-                                                    path))
+            decisionInstances.append(Inference(InstanceType(type),
+                                               output_dict['detection_scores'][i],
+                                               InferenceBounds(x_tl, y_tl, x_br, y_br)))
         return decisionInstances
 
 
