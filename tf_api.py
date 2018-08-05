@@ -48,6 +48,7 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
         self.category_index = label_map_util.create_category_index(self.categories)
 
     def __download(self):
+        os.mkdir(self.model_path)
         opener = urllib.request.URLopener()
         opener.retrieve(self.download_base + self.model_file, self.model_path+self.model_file)
         tar_file = tarfile.open(self.model_path+self.model_file)
