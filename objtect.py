@@ -4,15 +4,17 @@ import numpy as np
 
 
 class ObjectDetectorInterface:
-    def infer(self, image):
+    def infer(self, image, types=None):
         pass
 
 
 class InstanceType:
     __type = None
+    __detectorId = None
 
-    def __init__(self, type):
+    def __init__(self, type, detectorId=None):
         self.__type = type
+        self.__detectorId = detectorId
 
     def getType(self):
         return self.__type

@@ -74,7 +74,7 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
 
 
 
-    def infer(self, image):
+    def infer(self, image, types=None):
         with self.detection_graph.as_default():
             with tf.Session() as sess:
                 # Get handles to input and output tensors
@@ -126,8 +126,13 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
 
             try:
                 type = self.objectTypes[output_dict['detection_classes'][i]]
+                if types is not None:
+                    if type not in types:
+                        continue
             except:
-                type = 'unknown'
+                if types is not None:
+                    continue
+                type = 'undefined'
             decisionInstances.append(Inference(InstanceType(type),
                                                output_dict['detection_scores'][i],
                                                InferenceBounds(x_tl, y_tl, x_br, y_br)))
