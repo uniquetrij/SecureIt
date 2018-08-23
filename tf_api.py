@@ -1,3 +1,5 @@
+import cv2
+
 import numpy as np
 import os
 from os import path
@@ -12,6 +14,8 @@ from io import StringIO
 from PIL import Image
 import matplotlib
 
+from object_detection.utils import visualization_utils as vis_util
+
 from objtect import Inference, ObjectDetectorInterface, InstanceType, InferenceBounds
 
 PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
@@ -25,11 +29,95 @@ sys.path.append('tf_api/object_detection')
 from object_detection.utils import ops as utils_ops
 from object_detection.utils import label_map_util
 
+
 class TFObjectDetectionAPI(ObjectDetectorInterface):
+    # objectTypes = [None, ' person ']
 
-    objectTypes = [None, 'person']
+    objectTypes = {
+        0: None,
+        1: 'person',
+        2: 'bicycle',
+        3: 'car',
+        4: 'motorcycle',
+        5: 'airplane',
+        6: 'bus',
+        7: 'train',
+        8: 'truck',
+        9: 'boat',
+        10: 'traffic light',
+        11: 'fire hydrant',
+        13: 'stop sign',
+        14: 'parking meter',
+        15: 'bench',
+        16: 'bird',
+        17: 'cat',
+        18: 'dog',
+        19: 'horse',
+        20: 'sheep',
+        21: 'cow',
+        22: 'elephant',
+        23: 'bear',
+        24: 'zebra',
+        25: 'giraffe',
+        27: 'backpack',
+        28: 'umbrella',
+        31: 'handbag',
+        32: 'tie',
+        33: 'suitcase',
+        34: 'frisbee',
+        35: 'skis',
+        36: 'snowboard',
+        37: 'sports ball',
+        38: 'kite',
+        39: 'baseball bat',
+        40: 'baseball glove',
+        41: 'skateboard',
+        42: 'surfboard',
+        43: 'tennis racket',
+        44: 'bottle',
+        46: 'wine glass',
+        47: 'cup',
+        48: 'fork',
+        49: 'knife',
+        50: 'spoon',
+        51: 'bowl',
+        52: 'banana',
+        53: 'apple',
+        54: 'sandwich',
+        55: 'orange',
+        56: 'broccoli',
+        57: 'carrot',
+        58: 'hot dog',
+        59: 'pizza',
+        60: 'donut',
+        61: 'cake',
+        62: 'chair',
+        63: 'couch',
+        64: 'potted plant',
+        65: 'bed',
+        67: 'dining table',
+        70: 'toilet',
+        72: 'tv',
+        73: 'laptop',
+        74: 'mouse',
+        75: 'remote',
+        76: 'keyboard',
+        77: 'cell phone',
+        78: 'microwave',
+        79: 'oven',
+        80: 'toaster',
+        81: 'sink',
+        82: 'refrigerator',
+        84: 'book',
+        85: 'clock',
+        86: 'vase',
+        87: 'scissors',
+        88: 'teddy bear',
+        89: 'hair drier',
+        90: 'toothbrush',
+    }
 
-    def __init__(self, model_name = PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17):
+    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17):
 
         if tf.__version__ < '1.4.0':
             raise ImportError('Please upgrade your tensorflow installation to v1.4.* or later!')
@@ -56,8 +144,8 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
         except:
             pass
         opener = urllib.request.URLopener()
-        opener.retrieve(self.download_base + self.model_file, self.model_path+self.model_file)
-        tar_file = tarfile.open(self.model_path+self.model_file)
+        opener.retrieve(self.download_base + self.model_file, self.model_path + self.model_file)
+        tar_file = tarfile.open(self.model_path + self.model_file)
         for file in tar_file.getmembers():
             file_name = os.path.basename(file.name)
             if 'frozen_inference_graph.pb' in file_name:
@@ -71,8 +159,6 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
-
-
 
     def infer(self, image, types=None):
         with self.detection_graph.as_default():
@@ -138,10 +224,83 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
                                                InferenceBounds(x_tl, y_tl, x_br, y_br)))
         return decisionInstances
 
+    def inferOnStream(self, cap):
+        with self.detection_graph.as_default():
+            with tf.Session(graph=self.detection_graph) as sess:
+                while True:
+                    ret, image_np = cap.read()
+                    # image_np = cap
 
+                    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                    image_np_expanded = np.expand_dims(image_np, axis=0)
+                    image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+                    # Each box represents a part of the image where a particular object was detected.
+                    boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+                    # Each score represent how level of confidence for each of the objects.
+                    # Score is shown on the result image, together with the class label.
+                    scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
+                    classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+                    num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
+                    # Actual detection.
+                    (boxes, scores, classes, num_detections) = sess.run(
+                        [boxes, scores, classes, num_detections],
+                        feed_dict={image_tensor: image_np_expanded})
+                    print(boxes)
+                    # Visualization of the results of a detection.
+                    vis_util.visualize_boxes_and_labels_on_image_array(
+                        image_np,
+                        np.squeeze(boxes),
+                        np.squeeze(classes).astype(np.int32),
+                        np.squeeze(scores),
+                        self.category_index,
+                        use_normalized_coordinates=True,
+                        line_thickness=8)
 
+                    cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
+                    if cv2.waitKey(25) & 0xFF == ord('q'):
+                        cv2.destroyAllWindows()
+                        break
 
+    def inferContinuous(self, videoStreamIn, videoStreamOut):
+        with self.detection_graph.as_default():
+            with tf.Session(graph=self.detection_graph) as sess:
+                while True:
+                    ret, image_np = videoStreamIn.get()
+                    if not ret:
+                        continue
+                    # image_np = cap
 
+                    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+                    image_np_expanded = np.expand_dims(image_np, axis=0)
+                    image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
+                    # Each box represents a part of the image where a particular object was detected.
+                    boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
+                    # Each score represent how level of confidence for each of the objects.
+                    # Score is shown on the result image, together with the class label.
+                    scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
+                    classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+                    num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
+                    # Actual detection.
+                    (boxes, scores, classes, num_detections) = sess.run(
+                        [boxes, scores, classes, num_detections],
+                        feed_dict={image_tensor: image_np_expanded})
+                    print(boxes)
+                    # Visualization of the results of a detection.
+                    vis_util.visualize_boxes_and_labels_on_image_array(
+                        image_np,
+                        np.squeeze(boxes),
+                        np.squeeze(classes).astype(np.int32),
+                        np.squeeze(scores),
+                        self.category_index,
+                        use_normalized_coordinates=True,
+                        line_thickness=2)
 
+                    videoStreamOut.set(image_np)
+
+                    # cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
+                    # if cv2.waitKey(25) & 0xFF == ord('q'):
+                    #     cv2.destroyAllWindows()
+                    #     sess.close()
+                    #     break
 
 
