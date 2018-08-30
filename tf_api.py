@@ -1,3 +1,6 @@
+from threading import Thread
+from time import sleep
+
 import cv2
 
 import numpy as np
@@ -14,9 +17,10 @@ from io import StringIO
 from PIL import Image
 import matplotlib
 
+from Utils import Pipe
 from object_detection.utils import visualization_utils as vis_util
 
-from objtect import Inference, ObjectDetectorInterface, InstanceType, InferenceBounds
+from objtect import DecisionInstance, ObjectDetectorInterface, InstanceType, InferenceBounds, Inference
 
 PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
 PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17 = 'ssd_mobilenet_v1_coco_2017_11_17'
@@ -31,7 +35,8 @@ from object_detection.utils import label_map_util
 
 
 class TFObjectDetectionAPI(ObjectDetectorInterface):
-    # objectTypes = [None, ' person ']
+    outPipe = None
+    inPipe = None
 
     objectTypes = {
         0: None,
@@ -117,6 +122,8 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
         90: 'toothbrush',
     }
 
+    thread = None
+
     def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17):
 
         if tf.__version__ < '1.4.0':
@@ -137,6 +144,25 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
                                                                          max_num_classes=self.class_count,
                                                                          use_display_name=True)
         self.category_index = label_map_util.create_category_index(self.categories)
+
+        self.inPipe = Pipe()
+        self.outPipe = Pipe()
+
+    def start(self):
+        if self.thread is None:
+            self.thread = Thread(target=self.__start)
+            self.thread.start()
+
+    def stop(self):
+        if self.thread is not None:
+            self.thread.stop()
+            self.thread = None
+
+    def getInPipe(self):
+        return self.inPipe
+
+    def getOutPipe(self):
+        return self.outPipe
 
     def __download(self):
         try:
@@ -160,115 +186,32 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
 
-    def infer(self, image, types=None):
-        with self.detection_graph.as_default():
-            with tf.Session() as sess:
-                # Get handles to input and output tensors
-                ops = tf.get_default_graph().get_operations()
-                all_tensor_names = {output.name for op in ops for output in op.outputs}
-                tensor_dict = {}
-                for key in [
-                    'num_detections', 'detection_boxes', 'detection_scores',
-                    'detection_classes', 'detection_masks'
-                ]:
-                    tensor_name = key + ':0'
-                    if tensor_name in all_tensor_names:
-                        tensor_dict[key] = tf.get_default_graph().get_tensor_by_name(
-                            tensor_name)
-                if 'detection_masks' in tensor_dict:
-                    # The following processing is only for single image
-                    detection_boxes = tf.squeeze(tensor_dict['detection_boxes'], [0])
-                    detection_masks = tf.squeeze(tensor_dict['detection_masks'], [0])
-                    # Reframe is required to translate mask from box coordinates to image coordinates and fit the image size.
-                    real_num_detection = tf.cast(tensor_dict['num_detections'][0], tf.int32)
-                    detection_boxes = tf.slice(detection_boxes, [0, 0], [real_num_detection, -1])
-                    detection_masks = tf.slice(detection_masks, [0, 0, 0], [real_num_detection, -1, -1])
-                    detection_masks_reframed = utils_ops.reframe_box_masks_to_image_masks(
-                        detection_masks, detection_boxes, image.shape[0], image.shape[1])
-                    detection_masks_reframed = tf.cast(
-                        tf.greater(detection_masks_reframed, 0.5), tf.uint8)
-                    # Follow the convention by adding back the batch dimension
-                    tensor_dict['detection_masks'] = tf.expand_dims(
-                        detection_masks_reframed, 0)
-                image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
+    def __start(self, types=None):
 
-                # Run inference
-                output_dict = sess.run(tensor_dict,
-                                       feed_dict={image_tensor: np.expand_dims(image, 0)})
-
-                # all outputs are float32 numpy arrays, so convert types as appropriate
-                output_dict['num_detections'] = int(output_dict['num_detections'][0])
-                output_dict['detection_classes'] = output_dict[
-                    'detection_classes'][0].astype(np.uint8)
-                output_dict['detection_boxes'] = output_dict['detection_boxes'][0]
-                output_dict['detection_scores'] = output_dict['detection_scores'][0]
-                if 'detection_masks' in output_dict:
-                    output_dict['detection_masks'] = output_dict['detection_masks'][0]
-
-        decisionInstances = []
-        height, width = image.shape[0], image.shape[1]
-        for i in range(len(output_dict['detection_classes'])):
-            y_tl, x_tl, y_br, x_br = output_dict['detection_boxes'][i] * [height, width, height, width]
-
-            try:
-                type = self.objectTypes[output_dict['detection_classes'][i]]
-                if types is not None:
-                    if type not in types:
-                        continue
-            except:
-                if types is not None:
-                    continue
-                type = 'undefined'
-            decisionInstances.append(Inference(InstanceType(type),
-                                               output_dict['detection_scores'][i],
-                                               InferenceBounds(x_tl, y_tl, x_br, y_br)))
-        return decisionInstances
-
-    def inferOnStream(self, cap):
         with self.detection_graph.as_default():
             with tf.Session(graph=self.detection_graph) as sess:
+
+                #######################################################Crowd#######################################
+
+                new_saver = tf.train.import_meta_graph("/home/allahbaksh/crowd_count-tf-B/src/model.ckpt.meta")
+                new_saver.restore(sess, tf.train.latest_checkpoint("/home/allahbaksh/crowd_count-tf-B/src/"))
+                graph = tf.get_default_graph()
+                op_to_restore = graph.get_tensor_by_name("add_12:0")
+                x = graph.get_tensor_by_name('Placeholder:0')
+
+                fps = 25
+
+                counter = 0
+                avg = 0
+
+                crowd_count = []
+
+                #######################################################Crowd#######################################
+
                 while True:
-                    ret, image_np = cap.read()
-                    # image_np = cap
-
-                    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-                    image_np_expanded = np.expand_dims(image_np, axis=0)
-                    image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
-                    # Each box represents a part of the image where a particular object was detected.
-                    boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
-                    # Each score represent how level of confidence for each of the objects.
-                    # Score is shown on the result image, together with the class label.
-                    scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
-                    classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
-                    num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
-                    # Actual detection.
-                    (boxes, scores, classes, num_detections) = sess.run(
-                        [boxes, scores, classes, num_detections],
-                        feed_dict={image_tensor: image_np_expanded})
-                    print(boxes)
-                    # Visualization of the results of a detection.
-                    vis_util.visualize_boxes_and_labels_on_image_array(
-                        image_np,
-                        np.squeeze(boxes),
-                        np.squeeze(classes).astype(np.int32),
-                        np.squeeze(scores),
-                        self.category_index,
-                        use_normalized_coordinates=True,
-                        line_thickness=8)
-
-                    cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
-                    if cv2.waitKey(25) & 0xFF == ord('q'):
-                        cv2.destroyAllWindows()
-                        break
-
-    def inferContinuous(self, videoStreamIn, videoStreamOut):
-        with self.detection_graph.as_default():
-            with tf.Session(graph=self.detection_graph) as sess:
-                while True:
-                    ret, image_np = videoStreamIn.get()
+                    ret, image_np = self.inPipe.pull()
                     if not ret:
                         continue
-                    # image_np = cap
 
                     # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
                     image_np_expanded = np.expand_dims(image_np, axis=0)
@@ -284,23 +227,68 @@ class TFObjectDetectionAPI(ObjectDetectorInterface):
                     (boxes, scores, classes, num_detections) = sess.run(
                         [boxes, scores, classes, num_detections],
                         feed_dict={image_tensor: image_np_expanded})
-                    print(boxes)
-                    # Visualization of the results of a detection.
+
+                    decisionInstances = []
+                    height, width = image_np.shape[0], image_np.shape[1]
+
+                    boxes = np.squeeze(boxes)
+                    classes = np.squeeze(classes)
+                    scores = np.squeeze(scores)
+
+                    for i in range(len(classes)):
+                        y_tl, x_tl, y_br, x_br = boxes[i] * [height, width, height, width]
+
+                        try:
+                            objType = self.objectTypes[classes[i]]
+                            if types is not None:
+                                if objType not in types:
+                                    continue
+                        except:
+                            if types is not None:
+                                continue
+                            objType = 'undefined'
+                        decisionInstances.append(DecisionInstance(InstanceType(objType, classes[i]),
+                                                                  scores[i],
+                                                                  InferenceBounds(x_tl, y_tl, x_br, y_br)))
+
+                    annotatedImage = image_np.copy()
                     vis_util.visualize_boxes_and_labels_on_image_array(
-                        image_np,
-                        np.squeeze(boxes),
-                        np.squeeze(classes).astype(np.int32),
-                        np.squeeze(scores),
+                        annotatedImage,
+                        boxes,
+                        classes.astype(np.int32),
+                        scores,
                         self.category_index,
                         use_normalized_coordinates=True,
                         line_thickness=2)
 
-                    videoStreamOut.set(image_np)
+                    #######################################################Crowd#######################################
 
-                    # cv2.imshow('object detection', cv2.resize(image_np, (800, 600)))
-                    # if cv2.waitKey(25) & 0xFF == ord('q'):
-                    #     cv2.destroyAllWindows()
-                    #     sess.close()
-                    #     break
+                    img = image_np.copy()
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                    img = np.array(img)
+                    img = (img - 127.5) / 128
 
+                    x_in = np.reshape(img, (1, img.shape[0], img.shape[1], 1))
+                    x_in = np.float32(x_in)
+                    y_pred = []
+                    y_pred = sess.run(op_to_restore, feed_dict={x: x_in})
+                    sum = np.absolute(np.int32(np.sum(y_pred)))
 
+                    crowd_count.append(sum)
+                    if len(crowd_count) > 20:
+                        avg = int(np.average(crowd_count) * 0.5)
+                        crowd_count = []
+
+                    # if counter <= fps:
+                    #     avg += sum
+                    # else:
+                    #     counter = 0
+                    #     avg = np.int32(avg / fps)
+                    #     print("AVG ###########################################",  avg)
+                    #     avg = 0
+                    # counter+=1
+
+                    #######################################################Crowd#######################################
+
+                    inference = Inference(image_np, decisionInstances, annotatedImage, avg)
+                    self.outPipe.push(inference)

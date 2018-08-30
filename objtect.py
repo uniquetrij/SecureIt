@@ -7,6 +7,17 @@ class ObjectDetectorInterface:
     def infer(self, image, types=None):
         pass
 
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def getInPipe(self):
+        pass
+
+    def getOutPipe(self):
+        pass
 
 class InstanceType:
     __type = None
@@ -18,6 +29,9 @@ class InstanceType:
 
     def getType(self):
         return self.__type
+
+    def getDetectorId(self):
+        return self.__detectorId
 
 
 class InferenceBounds:
@@ -41,14 +55,43 @@ class InferenceBounds:
     def getRight(self):
         return self.__x_br
 
-    def getBoundingCoordinates(self):
+    def getBoundingBox(self):
         return [[self.__x_tl, self.__y_tl],
                 [self.__x_tl, self.__y_br],
                 [self.__x_br, self.__y_br],
                 [self.__x_br, self.__y_tl]]
 
+    def getBoundingCoordinates(self):
+        return self.__y_tl , self.__x_tl, self.__y_br, self.__x_br, self.__y_br
+
+
+
 
 class Inference:
+    __image = None
+    __decisionInstances = None
+    __annotatedImage = None
+    __crowdCount = None
+
+    def __init__(self, image, decisionInstances, annotatedImage, crowdCount):
+        self.__image = image
+        self.__decisionInstances= decisionInstances
+        self.__annotatedImage = annotatedImage
+        self.__crowdCount = crowdCount
+
+    def getAnnotatedImage(self):
+        return self.__annotatedImage
+
+    def getImage(self):
+        return self.__image.copy()
+
+    def getDecisionInstances(self):
+        return self.__decisionInstances
+
+    def getCrowdCount(self):
+        return self.__crowdCount
+
+class DecisionInstance:
     __objectClass = None
     __boundingPath = None
     __confidenceScore = None
@@ -109,7 +152,7 @@ class ObjectDetector:
             inference = self.getInference(i)
             if inference.getClass().getType()in types and inference.getScore() > threshold:
                 bbox = inference.getBox()
-                img = cv2.polylines(img, [np.int32(bbox.getBoundingCoordinates())], 1, (0, 255, 0), 3)
+                img = cv2.polylines(img, [np.int32(bbox.getBoundingBox())], 1, (0, 255, 0), 3)
         return img
 
 

@@ -32,7 +32,7 @@ from objtect import ObjectDetector
 from tf_api import PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, TFObjectDetectionAPI
 
 detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28)
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(-1)
 
 videoStreamer = VideoStreamer()
 thread = Thread(target = detector.inferContinuous, args = (videoStreamer, ))
@@ -41,7 +41,7 @@ thread.start()
 while True:
     ret, image = cap.read()
     if ret:
-        videoStreamer.set(image);
+        videoStreamer.set(image)
 
 
 cap.release()
