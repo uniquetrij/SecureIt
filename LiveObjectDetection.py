@@ -25,9 +25,11 @@
 from threading import Thread
 
 import cv2
+from matplotlib import pyplot as plt
 
 from Utils import VideoStreamer
-from obj_detect.tf_api.ObjectDetection import PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, TFObjectDetectionAPI
+from objtect import ObjectDetector
+from tf_api import PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, TFObjectDetectionAPI
 
 detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28)
 cap = cv2.VideoCapture(-1)
