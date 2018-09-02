@@ -1,3 +1,4 @@
-.idea/*
-__pycache__
-object_detection/pretrained/*
+.idea/
+__pycache__/
+
+**/pretrained

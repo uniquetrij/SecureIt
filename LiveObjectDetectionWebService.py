@@ -2,31 +2,22 @@
 import multiprocessing
 import uuid
 from multiprocessing import Process
-from uuid import UUID
 
-from flask import Flask, jsonify, json, stream_with_context
+from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api, Resource
 import matplotlib.path as mplPath
 
 app = Flask(__name__)
 CORS(app)
-from time import sleep
-import PIL
-from flask import Flask, render_template, Response
+from flask import Response
 # import Flask
-import cv2
-
-from threading import Thread
-
-import cv2
-from matplotlib import pyplot as plt
 
 import numpy as np
 from threading import Thread
 from time import sleep
 import cv2
-from tf_api import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
+from obj_detect.tf_api.ObjectDetection import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
 
 detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28)
 
