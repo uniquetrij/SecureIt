@@ -18,7 +18,7 @@ class SessionRunner:
             with tf.gfile.GFile(session_runnable.get_path_to_frozen_graph(), 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
-                tf.import_graph_def(od_graph_def, name=session_runnable.get_name())
+                tf.import_graph_def(od_graph_def, name=session_runnable.get_graph_prefix())
 
     def start(self):
         if self.__thread is None:
@@ -27,25 +27,22 @@ class SessionRunner:
 
     def stop(self):
         if self.__thread is not None:
-            self.__thread.stop()
             self.__thread = None
 
     def __start(self):
         with self.__default_graph.as_default():
             with tf.Session(graph=self.__default_graph) as sess:
-                while True:
+                while self.__thread:
                     for runnable in self.__runnables:
                         runnable.run(sess, self.__default_graph)
 
 
-
-
 class SessionRunnable:
-    def __init__(self, name, path_to_frozen_graph):
-        self.__name = name
+    def __init__(self, graph_prefix, path_to_frozen_graph):
+        self.__name = graph_prefix
         self.__path_to_frozen_graph = path_to_frozen_graph
 
-    def get_name(self):
+    def get_graph_prefix(self):
         return self.__name
 
     def get_path_to_frozen_graph(self):

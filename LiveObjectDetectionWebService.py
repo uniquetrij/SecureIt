@@ -17,7 +17,7 @@ import numpy as np
 from threading import Thread
 from time import sleep
 import cv2
-from obj_detect.tf_api.ObjectDetection import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
+from obj_detection.tf_api.ObjectDetection import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
 
 detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28)
 
