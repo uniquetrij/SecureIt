@@ -11,29 +11,26 @@ class VideoStreamer:
             return True, self.newFrame
         return False, None
 
+
 class Pipe:
-    __tag = None
+    def __init__(self):
+        self.lst = []
 
-    hasNew = False
-    newFrame = None
-
-    def __init__(self, tag=None):
-        self.__tag = tag
-
-    def push(self, newFrame):
-        self.newFrame = newFrame
-        self.hasNew = True
+    def push(self, obj):
+        self.lst.append(obj)
 
     def pull(self):
-        if self.hasNew:
-            return True, self.newFrame
+        if not self.is_closed():
+            if len(self.lst) > 0:
+                return True, self.lst.pop(0)
+            return False, None
         return False, None
-
-    def getTag(self):
-        return self.__tag
-
+        # else:
+        #     raise Exception('I Dont Like Python!')
 
 
+    def close(self):
+        self.lst.append(None)
 
-
-
+    def is_closed(self):
+        return len(self.lst) == 1 and self.lst[0] is None

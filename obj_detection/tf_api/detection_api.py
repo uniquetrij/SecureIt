@@ -23,17 +23,21 @@ class TFObjectDetectionAPI(SessionRunnable):
 
     @staticmethod
     def __download_model(model_path, download_base, model_file):
+        print("downloading model...")
         try:
             os.mkdir(model_path)
         except:
             pass
+
         opener = urllib.request.URLopener()
         opener.retrieve(download_base + model_file, model_path + model_file)
+        print("finished downloading. extracting...")
         tar_file = tarfile.open(model_path + model_file)
         for file in tar_file.getmembers():
             file_name = os.path.basename(file.name)
             if 'frozen_inference_graph.pb' in file_name:
                 tar_file.extract(file, model_path)
+        print("finished extracting.")
 
     @staticmethod
     def __fetch_model_path(model_name):
@@ -167,6 +171,10 @@ class TFObjectDetectionAPI(SessionRunnable):
     def run(self, tf_sess, tf_default_graph):
         ret, image_np = self.__in_pipe.pull()
         if not ret:
+            return
+
+        if self.__in_pipe.is_closed():
+            self.__out_pipe.close()
             return
 
         image_np_expanded = np.expand_dims(image_np, axis=0)
