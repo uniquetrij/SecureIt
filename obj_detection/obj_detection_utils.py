@@ -3,17 +3,17 @@ from obj_detection.tf_api.object_detection.utils import visualization_utils as v
 
 
 class Inference:
-    def __init__(self, image, boxes, scores, classes, num_detections, category_index):
+    def __init__(self, image, boxes, scores, classes, num_detections, category_indices, class_labels_dict):
         self.image = image
         self.boxes = boxes
         self.scores = scores
         self.classes = classes
         self.num_detections = int(num_detections)
-        self.category_index = category_index
+        self.category_indices = category_indices
+        self.class_labels_dict = class_labels_dict
         self.height, self.width = image.shape[0], image.shape[1]
         self.denorm_boxes = None
         self.xywh = None
-        # self.y_tl, self.x_tl, self.y_br, self.x_br = boxes * [self.height, self.width, self.height, self.width]
 
     def get_annotated(self):
         annotated = self.image.copy()
@@ -22,15 +22,15 @@ class Inference:
             self.boxes,
             self.classes.astype(np.int32),
             self.scores,
-            self.category_index,
+            self.category_indices,
             use_normalized_coordinates=True,
             line_thickness=1)
         return annotated
 
-    def get_boxes(self):
+    def get_boxes_normalized(self):
         return self.boxes
 
-    def get_denorm_boxes(self):
+    def get_boxes(self):
         if self.denorm_boxes is None:
             self.denorm_boxes = []
             for i in range(self.num_detections):
@@ -39,7 +39,7 @@ class Inference:
         return self.denorm_boxes
 
     def get_boxes_as_xywh(self):
-        self.get_denorm_boxes()
+        self.get_boxes()
         if self.xywh is None:
             self.xywh = []
             for i in range(self.num_detections):
@@ -51,7 +51,15 @@ class Inference:
     def get_scores(self):
         return self.scores[:self.num_detections]
 
+    def get_category_indices(self):
+        return self.classes[:self.num_detections].astype(np.int32)
+
+    def get_labels(self):
+        return [self.class_labels_dict[k] for k in self.get_category_indices()]
+
     def get_image(self):
         return self.image
+
+
 
 

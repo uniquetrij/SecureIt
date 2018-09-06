@@ -2,8 +2,10 @@ from os.path import dirname, realpath
 from threading import Thread
 import tensorflow as tf
 
-
 class SessionRunner:
+
+    __config = tf.ConfigProto()
+    __config.gpu_options.allow_growth = True
 
     def __init__(self):
         self.__self_dir_path = dirname(realpath(__file__))
@@ -20,6 +22,8 @@ class SessionRunner:
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name=session_runnable.get_graph_prefix())
 
+        session_runnable.on_load(self.__default_graph)
+
     def start(self):
         if self.__thread is None:
             self.__thread = Thread(target=self.__start)
@@ -31,7 +35,7 @@ class SessionRunner:
 
     def __start(self):
         with self.__default_graph.as_default():
-            with tf.Session(graph=self.__default_graph) as sess:
+            with tf.Session(graph=self.__default_graph, config=self.__config) as sess:
                 while self.__thread:
                     for runnable in self.__runnables:
                         runnable.run(sess, self.__default_graph)
@@ -47,6 +51,9 @@ class SessionRunnable:
 
     def get_path_to_frozen_graph(self):
         return self.__path_to_frozen_graph
+
+    def on_load(self, tf_default_graph):
+        pass
 
     def run(self, tf_sess, tf_default_graph):
         pass

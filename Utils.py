@@ -1,3 +1,6 @@
+from threading import Lock
+
+
 class VideoStreamer:
     hasNew = False
     newFrame = None
@@ -14,23 +17,34 @@ class VideoStreamer:
 
 class Pipe:
     def __init__(self):
-        self.lst = []
+        self.__lst = []
+        self.__lock = Lock()
 
     def push(self, obj):
-        self.lst.append(obj)
+        self.__lock.acquire()
+        self.__lst.append(obj)
+        self.__lock.release()
 
-    def pull(self):
-        if not self.is_closed():
-            if len(self.lst) > 0:
-                return True, self.lst.pop(0)
+    def pull(self, flush=False):
+        try:
+            self.__lock.acquire()
+            if not self.is_closed():
+                if len(self.__lst) > 0:
+                    return True, self.__lst.pop(0)
+                return False, None
             return False, None
-        return False, None
         # else:
         #     raise Exception('I Dont Like Python!')
+        finally:
+            if flush:
+                self.__lst.clear()
+            self.__lock.release()
+
+
 
 
     def close(self):
-        self.lst.append(None)
+        self.__lst.append(None)
 
     def is_closed(self):
-        return len(self.lst) == 1 and self.lst[0] is None
+        return len(self.__lst) == 1 and self.__lst[0] is None

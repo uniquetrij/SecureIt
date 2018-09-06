@@ -13,17 +13,6 @@ from obj_tracking.sort_deep.deep_sort.detection import Detection
 from obj_tracking.sort_deep.deep_sort.tracker import Tracker
 
 
-# tfSession = SessionRunner()
-# detection = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, 'tf_api')
-# ip = detection.get_in_pipe()
-# op = detection.get_out_pipe()
-# tfSession.load(detection)
-#
-# tfSession.start()
-#
-# cap = cv2.VideoCapture(-1)
-
-
 def gather_sequence_info(sequence_dir, detection_file):
     """Gather sequence information, such as image filenames, detections,
     groundtruth (if available).
@@ -125,6 +114,8 @@ def create_detections(detection_mat, frame_idx, min_height=0):
 
     """
 
+    print(detection_mat)
+
     frame_indices = detection_mat[:, 0].astype(np.int)
 
     mask = frame_indices == frame_idx
@@ -175,6 +166,8 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
     # print ("Detection",np.load(detection_file))
     seq_info = gather_sequence_info(sequence_dir, detection_file)
 
+    print(seq_info)
+
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
     tracker = Tracker(metric)
@@ -194,24 +187,6 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         scores = np.array([d.confidence for d in detections])
         indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
-
-
-
-        #
-        # ret, image = cap.read()
-        # if not ret:
-        #     return
-        # ip.push(image.copy())
-        #
-        # ret, inference = op.pull()
-        # if not ret:
-        #     return
-        #
-        # boxes = inference.get_denorm_boxes()
-        # scores = inference.get_scores()
-        #
-        # # print(boxes)
-        # print(scores)
 
         # Update tracker.
         tracker.predict()
@@ -235,7 +210,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
     # Run tracker.
     if display:
-        visualizer = visualization.Visualization(seq_info, update_ms=5)
+        visualizer = visualization.Visualization(seq_info, update_ms=30)
     else:
         visualizer = visualization.NoVisualization(seq_info)
     visualizer.run(frame_callback)
@@ -247,48 +222,11 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
             row[0], row[1], row[2], row[3], row[4], row[5]), file=f)
 
 
-def parse_args():
-    """ Parse command line arguments.
-    """
-    parser = argparse.ArgumentParser(description="Deep SORT")
-    parser.add_argument(
-        "--sequence_dir", help="Path to MOTChallenge sequence directory",
-        default=None, required=True)
-    parser.add_argument(
-        "--detection_file", help="Path to custom detections.", default=None,
-        required=True)
-    parser.add_argument(
-        "--output_file", help="Path to the tracking output file. This file will"
-                              " contain the tracking results on completion.",
-        default="/tmp/hypotheses.txt")
-    parser.add_argument(
-        "--min_confidence", help="Detection confidence threshold. Disregard "
-                                 "all detections that have a confidence lower than this value.",
-        default=0.8, type=float)
-    parser.add_argument(
-        "--min_detection_height", help="Threshold on the detection bounding "
-                                       "box height. Detections with height smaller than this value are "
-                                       "disregarded", default=0, type=int)
-    parser.add_argument(
-        "--nms_max_overlap", help="Non-maxima suppression threshold: Maximum "
-                                  "detection overlap.", default=1.0, type=float)
-    parser.add_argument(
-        "--max_cosine_distance", help="Gating threshold for cosine distance "
-                                      "metric (object appearance).", type=float, default=0.2)
-    parser.add_argument(
-        "--nn_budget", help="Maximum size of the appearance descriptors "
-                            "gallery. If None, no budget is enforced.", type=int, default=None)
-    parser.add_argument(
-        "--display", help="Show intermediate tracking results",
-        default=True, type=bool)
-    return parser.parse_args()
-
-
 if __name__ == "__main__":
-    # args = parse_args()
-    # run(
-    #     args.sequence_dir, args.detection_file, args.output_file,
-    #     args.min_confidence, args.nms_max_overlap, args.min_detection_height,
-    #     args.max_cosine_distance, args.nn_budget, args.display)
-    run("./MOT16/test/MOT16-06", "./resources/detections/MOT16_POI_test/MOT16-06.npy", "/tmp/hypotheses.txt", 0.3, 1.0,
-        0, 100, None, True)
+
+    run("./MOT16/train/MOT16-02", "./resources/detections/MOT16_POI_train/MOT16-02.npy", "/tmp/hypotheses.txt", 0.3, 100.0,
+        10, 100, None, True)
+
+    # run("./MOT16/test/MOT16-06", "./resources/detections/MOT16_POI_test/MOT16-06.npy", "/tmp/hypotheses.txt", 0.3,
+    #     1.0,
+    #     0, 100, None, True)

@@ -32,15 +32,7 @@ class ImageEncoder(SessionRunnable):
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def run(self, tf_sess, tf_default_graph):
-        ret, data_x = self.__in_pipe.pull()
-        if not ret:
-            return
-
-        if self.__in_pipe.is_closed():
-            self.__out_pipe.close()
-            return
-
+    def on_load(self, tf_default_graph):
         self.input_var = tf_default_graph.get_tensor_by_name(
             self.graph_prefix + 'images:0')
         self.output_var = tf_default_graph.get_tensor_by_name(
@@ -52,12 +44,21 @@ class ImageEncoder(SessionRunnable):
         self.feature_dim = self.output_var.get_shape().as_list()[-1]
         self.image_shape = self.input_var.get_shape().as_list()[1:]
 
-        out = np.zeros((len(data_x), self.feature_dim), np.float32)
+    def run(self, tf_sess, tf_default_graph):
+        ret, data_x = self.__in_pipe.pull()
+        if not ret:
+            return
+
+        if self.__in_pipe.is_closed():
+            self.__out_pipe.close()
+            return
+
+        __tracking_features = np.zeros((len(data_x), self.feature_dim), np.float32)
         self._run_in_batches(
             lambda x: tf_sess.run(self.output_var, feed_dict=x),
-            {self.input_var: data_x}, out, batch_size=32)
+            {self.input_var: data_x}, __tracking_features, batch_size=32)
 
-        self.__out_pipe.push(out)
+        self.__out_pipe.push(__tracking_features)
 
 
     def _run_in_batches(self, f, data_dict, out, batch_size):

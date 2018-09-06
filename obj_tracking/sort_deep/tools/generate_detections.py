@@ -17,6 +17,7 @@ tf_session.load(dsort_api)
 
 tf_session.start()
 
+
 def _run_in_batches(f, data_dict, out, batch_size):
     data_len = len(out)
     num_batches = int(data_len / batch_size)
@@ -165,6 +166,7 @@ def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
         sequence_dir = os.path.join(mot_dir, sequence)
 
         image_dir = os.path.join(sequence_dir, "img1")
+
         image_filenames = {
             int(os.path.splitext(f)[0]): os.path.join(image_dir, f)
             for f in os.listdir(image_dir)}
@@ -226,4 +228,8 @@ def main():
 
 if __name__ == "__main__":
     encoder = create_box_encoder("../resources/networks/mars-small128.pb", batch_size=32)
-    generate_detections(encoder, "../MOT16/test", "../resources/detections/MOT16_POI_test", None)
+
+    # generate_detections(encoder, "../MOT16/test", "../resources/detections/MOT16_POI_test", None)
+
+    generate_detections(encoder, "../MOT16/train/MOT16-02_1", "../resources/detections/MOT16_POI_train", None)
+

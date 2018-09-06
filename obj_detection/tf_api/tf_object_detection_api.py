@@ -7,7 +7,7 @@ import numpy as np
 import six.moves.urllib as urllib
 
 from Utils import Pipe
-from obj_detection.detection import Inference
+from obj_detection.obj_detection_utils import Inference
 from obj_detection.tf_api.object_detection.utils import label_map_util
 from tf_session.session_runner import SessionRunnable
 
@@ -62,7 +62,7 @@ class TFObjectDetectionAPI(SessionRunnable):
         category_index = label_map_util.create_category_index(categories)
         return category_index
 
-    __object_types = {
+    __class_labels_dict = {
         0: None,
         1: 'person',
         2: 'bicycle',
@@ -96,7 +96,7 @@ class TFObjectDetectionAPI(SessionRunnable):
         34: 'frisbee',
         35: 'skis',
         36: 'snowboard',
-        37: 'sports ball',
+        37: 'sports classesball',
         38: 'kite',
         39: 'baseball bat',
         40: 'baseball glove',
@@ -146,10 +146,11 @@ class TFObjectDetectionAPI(SessionRunnable):
         90: 'toothbrush',
     }
 
-    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, graph_prefix=None):
+    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, graph_prefix=None, flush_pipe_on_read=False):
 
         self.__category_index = self.__fetch_category_indices()
         self.__path_to_frozen_graph = self.__fetch_model_path(model_name)
+        self.__flush_pipe_on_read = flush_pipe_on_read
 
         if not graph_prefix:
             self.graph_prefix = ''
@@ -169,7 +170,7 @@ class TFObjectDetectionAPI(SessionRunnable):
         return self.__out_pipe
 
     def run(self, tf_sess, tf_default_graph):
-        ret, image_np = self.__in_pipe.pull()
+        ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
         if not ret:
             return
 
@@ -192,6 +193,6 @@ class TFObjectDetectionAPI(SessionRunnable):
         scores = np.squeeze(scores)
         num_detections = np.squeeze(num_detections)
 
-        self.__out_pipe.push(Inference(image_np, boxes, scores, classes.astype(np.int32), num_detections, self.__category_index))
+        self.__out_pipe.push(Inference(image_np, boxes, scores, classes.astype(np.int32), num_detections, self.__category_index, self.__class_labels_dict))
 
 
