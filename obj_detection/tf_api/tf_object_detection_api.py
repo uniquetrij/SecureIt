@@ -6,10 +6,10 @@ from os.path import realpath, dirname
 import numpy as np
 import six.moves.urllib as urllib
 
-from Utils import Pipe
+from tf_session.tf_session_utils import Pipe
 from obj_detection.obj_detection_utils import Inference
 from obj_detection.tf_api.object_detection.utils import label_map_util
-from tf_session.session_runner import SessionRunnable
+from tf_session.tf_session_runner import SessionRunnable
 
 PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
 PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17 = 'ssd_mobilenet_v1_coco_2017_11_17'
@@ -57,8 +57,8 @@ class TFObjectDetectionAPI(SessionRunnable):
         class_count = 90
         label_map = label_map_util.load_labelmap(path_to_labels)
         categories = label_map_util.convert_label_map_to_categories(label_map,
-                                                                         max_num_classes=class_count,
-                                                                         use_display_name=True)
+                                                                    max_num_classes=class_count,
+                                                                    use_display_name=True)
         category_index = label_map_util.create_category_index(categories)
         return category_index
 
@@ -146,7 +146,8 @@ class TFObjectDetectionAPI(SessionRunnable):
         90: 'toothbrush',
     }
 
-    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, graph_prefix=None, flush_pipe_on_read=False):
+    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, graph_prefix=None,
+                 flush_pipe_on_read=False):
 
         self.__category_index = self.__fetch_category_indices()
         self.__path_to_frozen_graph = self.__fetch_model_path(model_name)
@@ -169,30 +170,31 @@ class TFObjectDetectionAPI(SessionRunnable):
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def run(self, tf_sess, tf_default_graph):
-        ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
-        if not ret:
-            return
+    def on_load(self, tf_default_graph):
+        self.image_tensor = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'image_tensor:0')
+        self.boxes = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'detection_boxes:0')
+        self.scores = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'detection_scores:0')
+        self.classes = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'detection_classes:0')
+        self.num_detections = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'num_detections:0')
 
+    def run(self, tf_sess, tf_default_graph):
         if self.__in_pipe.is_closed():
             self.__out_pipe.close()
             return
 
-        image_np_expanded = np.expand_dims(image_np, axis=0)
-        image_tensor = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'image_tensor:0')
-        boxes = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'detection_boxes:0')
-        scores = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'detection_scores:0')
-        classes = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'detection_classes:0')
-        num_detections = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'num_detections:0')
+        ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
+        if not ret:
+            return
 
-        (boxes, scores, classes, num_detections) = tf_sess.run([boxes, scores, classes, num_detections],
-                                                               feed_dict={image_tensor: image_np_expanded})
+        image_np_expanded = np.expand_dims(image_np, axis=0)
+        (boxes, scores, classes, num_detections) = tf_sess.run([self.boxes, self.scores, self.classes, self.num_detections],
+                                                               feed_dict={self.image_tensor: image_np_expanded})
 
         boxes = np.squeeze(boxes)
         classes = np.squeeze(classes)
         scores = np.squeeze(scores)
         num_detections = np.squeeze(num_detections)
 
-        self.__out_pipe.push(Inference(image_np, boxes, scores, classes.astype(np.int32), num_detections, self.__category_index, self.__class_labels_dict))
-
-
+        self.__out_pipe.push(
+            Inference(image_np, boxes, scores, classes.astype(np.int32), num_detections, self.__category_index,
+                      self.__class_labels_dict))

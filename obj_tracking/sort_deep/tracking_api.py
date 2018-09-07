@@ -1,5 +1,5 @@
-from Utils import Pipe
-from tf_session.session_runner import SessionRunnable
+from tf_session.tf_session_utils import Pipe
+from tf_session.tf_session_runner import SessionRunnable
 import numpy as np
 
 PRETRAINED_mars_small128 = 'mars-small128.pb'

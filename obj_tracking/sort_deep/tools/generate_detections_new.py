@@ -15,12 +15,12 @@ from obj_tracking.sort_deep.deep_sort.detection import Detection
 from obj_tracking.sort_deep.tracking_api import ImageEncoder, PRETRAINED_mars_small128
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
-from tf_session.session_runner import SessionRunner
+from tf_session.tf_session_runner import SessionRunner
 from obj_tracking.sort_deep.application_util import preprocessing, visualization
 from obj_tracking.sort_deep.deep_sort.tracker import Tracker
 
 
-# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02.webm")
+# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/test.mp4")
 cap = cv2.VideoCapture(-1)
 
 
@@ -94,41 +94,41 @@ def test():
     count = 0
     detections_out = []
 
-
     max_cosine_distance = 100
     nn_budget = None
 
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
     tracker = Tracker(metric)
-
+    output_filename = os.path.join("../resources/detections/MOT16_POI_train/", "%s.npy" % "MOT16-02")
     while not od_op.is_closed():
         detection_list = []
         ret, inference = od_op.pull()
         if not ret:
-
             continue
         cv2.imwrite("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02/img1/"+(str(count).zfill(5))+".jpg", inference.get_image())
+        count += 1
+        print(count)
 
         categories = inference.get_category_indices()
-        indices = np.where(categories == 1)[0]
+        scores = inference.get_scores()
+        indices = np.where(np.logical_and(categories == 1, scores > 0.5))[0]
         labels = [inference.get_labels()[i] for i in indices]
         boxes = [inference.get_boxes_as_xywh()[i] for i in indices]
         scores = [inference.get_scores()[i] for i in indices]
         scores = np.asarray(scores)
         scores = scores.reshape(len(scores), 1)
-        # try:
+
         rows = np.concatenate([boxes, scores], axis=1)
-        # except:
-        #     continue
+
 
 
         features = create_box_encoder()(inference.get_image(), boxes.copy())
         detection_mat = [np.r_[(count + 1, -1, r, -1, -1, -1, f)] for r, f in zip(rows, features)]
 
         min_confidence = 0.3
-        nms_max_overlap = 100
-        min_height = 10
+        nms_max_overlap = 0
+        min_height = 0
 
         for row in detection_mat:
             bbox, confidence, feature = row[2:6], row[6], row[10:]
@@ -144,8 +144,6 @@ def test():
         scores = np.array([d.confidence for d in detections])
         indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
-
-
 
         # Update tracker.
         tracker.predict()
@@ -174,13 +172,13 @@ def test():
         cv2.imshow("detected", image)
         cv2.waitKey(1)
 
-        count += 1
-        print(count)
+
 
         detections_out+= detection_mat
+        np.save(output_filename, np.asarray(detections_out), allow_pickle=False)
 
     print("writing to file...")
-    output_filename = os.path.join("../resources/detections/MOT16_POI_train/MOT16-02.npy", "%s.npy" % "MOT16-02")
+
     np.save(output_filename, np.asarray(detections_out), allow_pickle=False)
     print("finished")
 
@@ -263,11 +261,13 @@ def create_box_encoder():
 def generate_detections(output_dir):
     thread = Thread(target=test)
     thread.start()
+
     while True:
-    # for i in range(500):
+    # for i in range(1000):
         ret, frame = cap.read()
         if not ret:
             continue
+
         # cv2.imshow("live", frame)
         # cv2.waitKey(1)
         # print("pushing frame "+(str(i).zfill(5)))

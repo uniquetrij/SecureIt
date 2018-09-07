@@ -7,7 +7,7 @@ import cv2
 import tensorflow as tf
 
 from obj_tracking.sort_deep.tracking_api import ImageEncoder, PRETRAINED_mars_small128
-from tf_session.session_runner import SessionRunner
+from tf_session.tf_session_runner import SessionRunner
 
 tf_session = SessionRunner()
 dsort_api = ImageEncoder(PRETRAINED_mars_small128, 'dsort_api')
@@ -231,5 +231,5 @@ if __name__ == "__main__":
 
     # generate_detections(encoder, "../MOT16/test", "../resources/detections/MOT16_POI_test", None)
 
-    generate_detections(encoder, "../MOT16/train/MOT16-02_1", "../resources/detections/MOT16_POI_train", None)
+    generate_detections(encoder, "../MOT16/train/MOT16-02", "../resources/detections/MOT16_POI_train", None)
 

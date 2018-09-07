@@ -10,7 +10,7 @@ import tensorflow as tf
 
 import matplotlib
 
-from Utils import Pipe
+from tf_session.tf_session_utils import Pipe
 from obj_detection.tf_api.object_detection.utils import visualization_utils as vis_util
 
 from objtect import DecisionInstance, ObjectDetectorInterface, InstanceType, InferenceBounds, Inference

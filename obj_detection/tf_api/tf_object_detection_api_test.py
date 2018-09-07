@@ -1,7 +1,7 @@
 import cv2
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
-from tf_session.session_runner import SessionRunner
+from tf_session.tf_session_runner import SessionRunner
 
 if __name__ == '__main__':
     tfSession = SessionRunner()
