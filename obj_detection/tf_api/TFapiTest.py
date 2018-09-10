@@ -22,7 +22,7 @@ def display():
                 break
         sleep(0.05)
 
-cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
 def load():
     while(True):
         ret, image = cap.read()

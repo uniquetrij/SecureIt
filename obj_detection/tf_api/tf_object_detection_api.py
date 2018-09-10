@@ -2,6 +2,8 @@ import os
 import tarfile
 from os import path
 from os.path import realpath, dirname
+from threading import Thread
+from time import sleep
 
 import numpy as np
 from obj_detection.tf_api.object_detection.utils import ops as utils_ops
@@ -149,9 +151,10 @@ class TFObjectDetectionAPI(SessionRunnable):
         90: 'toothbrush',
     }
 
-    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None, graph_prefix=None,
+    def __init__(self, session_runner, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None,
+                 graph_prefix=None,
                  flush_pipe_on_read=False):
-
+        self.__tf_sess = session_runner.get_session()
         self.__category_index = self.__fetch_category_indices()
         self.__path_to_frozen_graph = self.__fetch_model_path(model_name)
         self.__flush_pipe_on_read = flush_pipe_on_read
@@ -167,6 +170,10 @@ class TFObjectDetectionAPI(SessionRunnable):
         self.__out_pipe = Pipe(self.__out_pipe_process)
 
         super(TFObjectDetectionAPI, self).__init__(graph_prefix, self.__path_to_frozen_graph)
+
+        self.init()
+        self.session_runner = session_runner
+        self.__thread = None
 
     def __in_pipe_process(self, image):
         return image
@@ -191,9 +198,16 @@ class TFObjectDetectionAPI(SessionRunnable):
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def on_load(self, tf_sess):
-        self.__tf_sess = tf_sess
-        tf_default_graph = tf_sess.graph
+    def init(self):
+        with self.__tf_sess.graph.as_default():
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(self.get_path_to_frozen_graph(), 'rb') as fid:
+                serialized_graph = fid.read()
+                od_graph_def.ParseFromString(serialized_graph)
+                tf.import_graph_def(od_graph_def, name=self.get_graph_prefix())
+
+        tf_default_graph = self.__tf_sess.graph
+
         self.__image_tensor = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'image_tensor:0')
         tensor_names = {output.name for op in tf_default_graph.get_operations() for output in op.outputs}
         self.__tensor_dict = {}
@@ -219,17 +233,26 @@ class TFObjectDetectionAPI(SessionRunnable):
             self.__tensor_dict['detection_masks'] = tf.expand_dims(
                 detection_masks_reframed, 0)
 
-
     def run(self):
-        if self.__in_pipe.is_closed():
-            self.__out_pipe.close()
-            return
+        if self.__thread is None:
+            self.__thread = Thread(target=self.__run)
+            self.__thread.start()
 
-        ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
-        if not ret:
-            return
+    def __run(self):
+        while self.__thread:
 
+            if self.__in_pipe.is_closed():
+                self.__out_pipe.close()
+                return
+
+            ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            if ret:
+                self.image_np = image_np
+                self.session_runner.add_job(self.__job())
+            else:
+                self.__in_pipe.wait()
+
+    def __job(self):
         output_dict = self.__tf_sess.run(
-            self.__tensor_dict, feed_dict={self.__image_tensor: np.expand_dims(image_np, axis=0)})
-
-        self.__out_pipe.push((image_np, output_dict))
+            self.__tensor_dict, feed_dict={self.__image_tensor: np.expand_dims(self.image_np, axis=0)})
+        self.__out_pipe.push((self.image_np, output_dict))

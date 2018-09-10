@@ -191,7 +191,7 @@ class TFObjectDetectionAPI(SessionRunnable):
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def on_load(self, tf_sess):
+    def init(self, tf_sess):
         self.__tf_sess = tf_sess
         tf_default_graph = tf_sess.graph
         self.__image_tensor = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'image_tensor:0')
