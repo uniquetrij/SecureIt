@@ -6,27 +6,29 @@ Class definition of YOLO_v3 style detection model on image and video
 import colorsys
 import cv2
 import os
+from threading import Thread
 from timeit import default_timer as timer
-import tensorflow as tf
 
 import numpy as np
-from PIL import ImageFont, ImageDraw, Image
 from keras import backend as K
-from keras.layers import Input
 from keras.models import load_model
-from keras.utils import multi_gpu_model
+from keras.layers import Input
+from PIL import Image, ImageFont, ImageDraw
+import tensorflow as tf
 
 from obj_detection.yolo_api.yolo_keras.model import yolo_eval, yolo_body, tiny_yolo_body
 from obj_detection.yolo_api.yolo_keras.utils import letterbox_image
-from tf_session.tf_session_runner import KerasRunnable
+import os
+from keras.utils import multi_gpu_model
+
 from tf_session.tf_session_utils import Pipe
 
 
-class YOLOObjectDetectionAPI(KerasRunnable):
+class YOLOObjectDetectionAPI():
     _defaults = {
-        "model_path": 'model_data/yolo_keras.h5',
-        "anchors_path": 'model_data/yolo_anchors.txt',
-        "classes_path": 'model_data/coco.names',
+        "model_path": './pretrained/yolo_v3.h5',
+        "anchors_path": './data/yolo_anchors.txt',
+        "classes_path": './data/coco.names',
         "score": 0.3,
         "iou": 0.45,
         "model_image_size": (416, 416),
@@ -40,33 +42,47 @@ class YOLOObjectDetectionAPI(KerasRunnable):
         else:
             return "Unrecognized attribute name '" + n + "'"
 
-    def __init__(self, graph_prefix=None, flush_pipe_on_read=False):
-        self.__flush_pipe_on_read = flush_pipe_on_read
-        if not graph_prefix:
-            self.graph_prefix = ''
-            graph_prefix = ''
-        else:
-            self.graph_prefix = graph_prefix + '/'
+    def __init__(self, session_runner, graph_prefix=None, flush_pipe_on_read=False):
         self.__dict__.update(self._defaults)  # set up default values
         # self.__dict__.update(kwargs) # and update with user overrides
         self.class_names = self._get_class()
         self.anchors = self._get_anchors()
+        self.__graph_prefix = graph_prefix
+        self.__flush_pipe_on_read = flush_pipe_on_read
+        self.__session_runner = session_runner
+        self.__thread = None
+        self.__in_pipe = Pipe(self.__in_pipe_process)
+        self.__out_pipe = Pipe(self.__out_pipe_process)
+        K.set_session(session_runner.get_session())
+        self.__tf_sess = K.get_session()
+        self.boxes, self.scores, self.classes = self.generate()
 
-        self.__in_pipe = Pipe()
-        self.__out_pipe = Pipe()
+    def __in_pipe_process(self, image):
+        return Image.fromarray(image)
+        # return image
 
-        super(YOLOObjectDetectionAPI, self).__init__(graph_prefix)
+    def __out_pipe_process(self, inference):
+        inference[1].show()
+        # image_np, output_dict = inference
+        # num_detections = int(output_dict['num_detections'][0])
+        # detection_classes = output_dict['detection_classes'][0][:num_detections].astype(np.uint8)
+        # detection_boxes = output_dict['detection_boxes'][0][:num_detections]
+        # detection_scores = output_dict['detection_scores'][0][:num_detections]
+        # if 'detection_masks' in output_dict:
+        #     detection_masks = output_dict['detection_masks'][0][:num_detections]
+        # else:
+        #     detection_masks = None
+        #
+        # return Inference(image_np, num_detections, detection_boxes, detection_classes, detection_scores,
+        #                  detection_masks, self.__category_index, self.__class_labels_dict)
+
+        return inference
 
     def get_in_pipe(self):
         return self.__in_pipe
 
     def get_out_pipe(self):
         return self.__out_pipe
-
-    def on_load(self, tf_sess):
-        K.set_session(tf_sess)
-        self.sess = K.get_session()
-        self.boxes, self.scores, self.classes = self.generate()
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -118,24 +134,68 @@ class YOLOObjectDetectionAPI(KerasRunnable):
         self.input_image_shape = K.placeholder(shape=(2,))
         if self.gpu_num >= 2:
             self.yolo_model = multi_gpu_model(self.yolo_model, gpus=self.gpu_num)
+        print(self.yolo_model.output)
         boxes, scores, classes = yolo_eval(self.yolo_model.output, self.anchors,
                                            len(self.class_names), self.input_image_shape,
                                            score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
+    def freeze_session(self, session, keep_var_names=None, output_names=None, clear_devices=True):
+        """
+        Freezes the state of a session into a pruned computation graph.
+
+        Creates a new computation graph where variable nodes are replaced by
+        constants taking their current value in the session. The new graph will be
+        pruned so subgraphs that are not necessary to compute the requested
+        outputs are removed.
+        @param session The TensorFlowsion(detected_boxes, confidence_threshold=FLAGS.conf_threshold,
+                                         iou_threshold=FLAGS.iou_threshold)
+
+    draw_boxes(filtered_boxes, img, classes, (FLAGS.size, FLAGS.size))
+
+    img.save(FLAGS.output_img) session to be frozen.
+        @param keep_var_names A list of variable names that should not be frozen,
+                              or None to freeze all the variables in the graph.
+        @param output_names Names of the relevant graph outputs.
+        @param clear_devices Remove the device directives from the graph for better portability.
+        @return The frozen graph definition.
+        """
+        from tensorflow.python.framework.graph_util import convert_variables_to_constants
+        graph = session.graph
+        with graph.as_default():
+            freeze_var_names = list(set(v.op.name for v in tf.global_variables()).difference(keep_var_names or []))
+            output_names = output_names or []
+            output_names += [v.op.name for v in tf.global_variables()]
+            input_graph_def = graph.as_graph_def()
+            if clear_devices:
+                for node in input_graph_def.node:
+                    node.device = ""
+            frozen_graph = convert_variables_to_constants(session, input_graph_def,
+                                                          output_names, freeze_var_names)
+            return frozen_graph
+
     def run(self):
+        if self.__thread is None:
+            self.__thread = Thread(target=self.__run)
+            self.__thread.start()
+
+    def __run(self):
+        while self.__thread:
+            if self.__in_pipe.is_closed():
+                self.__out_pipe.close()
+                return
+
+            ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            if ret:
+                self.image_np = image_np
+                self.__session_runner.add_job(self.__job())
+            else:
+                self.__in_pipe.wait()
+
+    def __job(self):
         start = timer()
 
-        if self.__in_pipe.is_closed():
-            self.__out_pipe.close()
-            return
-
-        ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
-        if not ret:
-            return
-
-        image = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        image = Image.fromarray(image)
+        image = self.image_np
 
         if self.model_image_size != (None, None):
             assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
@@ -151,13 +211,24 @@ class YOLOObjectDetectionAPI(KerasRunnable):
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
-        out_boxes, out_scores, out_classes = self.sess.run(
+        # frozen_graph = self.freeze_session(K.get_session(),
+        #                               output_names=[out.op.name for out in self.yolo_model.outputs])
+        # tf.train.write_graph(frozen_graph, ".", "my_model.pb", as_text=False)
+
+        out_boxes, out_scores, out_classes = self.__tf_sess.run(
             [self.boxes, self.scores, self.classes],
             feed_dict={
                 self.yolo_model.input: image_data,
                 self.input_image_shape: [image.size[1], image.size[0]],
-                K.learning_phase(): 0
+                # K.learning_phase(): 0
             })
+
+        print([out.op.name for out in self.yolo_model.outputs])
+        print(self.yolo_model.input.name)
+        print(self.input_image_shape.name)
+        print(self.boxes.name)
+        print(self.scores.name)
+        print(self.classes.name)
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
@@ -199,7 +270,12 @@ class YOLOObjectDetectionAPI(KerasRunnable):
 
         end = timer()
         print(end - start)
-        image.show("hello")
+        self.__out_pipe.push((self.image_np, image))
+
 
     def close_session(self):
-        self.sess.close()
+        self.__tf_sess.close()
+
+#
+# if __name__ == '__main__':
+#     YOLO().detect_image(Image.open("/home/uniquetrij/PycharmProjects/SecureIt/data/images/2.jpg")).show()

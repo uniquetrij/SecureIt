@@ -22,8 +22,8 @@ from keras.utils import multi_gpu_model
 class YOLO(object):
     _defaults = {
         "model_path": '../pretrained/yolo_v3.h5',
-        "anchors_path": '../pretrained/yolo_anchors.txt',
-        "classes_path": '../pretrained/coco.names',
+        "anchors_path": '../data/yolo_anchors.txt',
+        "classes_path": '../data/coco.names',
         "score" : 0.3,
         "iou" : 0.45,
         "model_image_size" : (416, 416),

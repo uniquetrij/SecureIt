@@ -16,13 +16,6 @@ class Inference:
         self.denorm_boxes = None
         self.xywh = None
 
-        # print(self.num_detections)
-        # print(self.boxes.shape)
-        # print(self.classes.shape)
-        # print(self.scores.shape)
-        # print(self.masks.shape)
-        # print(self.masks)
-
     def get_annotated(self):
         annotated = self.image.copy()
         vis_util.visualize_boxes_and_labels_on_image_array(

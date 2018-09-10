@@ -61,7 +61,7 @@ class SessionRunnable:
     def get_path_to_frozen_graph(self):
         return self.__path_to_frozen_graph
 
-    def init(self):
+    def init_graph(self):
         pass
 
     def run(self):

@@ -152,13 +152,16 @@ class TFObjectDetectionAPI(SessionRunnable):
     }
 
     def __init__(self, session_runner, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None,
-                 graph_prefix=None,
-                 flush_pipe_on_read=False):
+                 graph_prefix=None, flush_pipe_on_read=False):
         self.__tf_sess = session_runner.get_session()
         self.__category_index = self.__fetch_category_indices()
         self.__path_to_frozen_graph = self.__fetch_model_path(model_name)
         self.__flush_pipe_on_read = flush_pipe_on_read
         self.__image_shape = image_shape
+        self.__session_runner = session_runner
+        self.__thread = None
+        self.__in_pipe = Pipe(self.__in_pipe_process)
+        self.__out_pipe = Pipe(self.__out_pipe_process)
 
         if not graph_prefix:
             self.graph_prefix = ''
@@ -166,14 +169,10 @@ class TFObjectDetectionAPI(SessionRunnable):
         else:
             self.graph_prefix = graph_prefix + '/'
 
-        self.__in_pipe = Pipe(self.__in_pipe_process)
-        self.__out_pipe = Pipe(self.__out_pipe_process)
-
         super(TFObjectDetectionAPI, self).__init__(graph_prefix, self.__path_to_frozen_graph)
 
-        self.init()
-        self.session_runner = session_runner
-        self.__thread = None
+        self.init_graph()
+
 
     def __in_pipe_process(self, image):
         return image
@@ -198,7 +197,7 @@ class TFObjectDetectionAPI(SessionRunnable):
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def init(self):
+    def init_graph(self):
         with self.__tf_sess.graph.as_default():
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(self.get_path_to_frozen_graph(), 'rb') as fid:
@@ -248,7 +247,7 @@ class TFObjectDetectionAPI(SessionRunnable):
             ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
                 self.image_np = image_np
-                self.session_runner.add_job(self.__job())
+                self.__session_runner.add_job(self.__job())
             else:
                 self.__in_pipe.wait()
 
