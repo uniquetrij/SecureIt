@@ -9,6 +9,7 @@ from tf_session.tf_session_runner import SessionRunner
 
 cap0 = cv2.VideoCapture(-1)
 # cap1 = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
+
 if __name__ == '__main__':
     tfSession = SessionRunner()
     tfSession.start()
@@ -17,6 +18,7 @@ if __name__ == '__main__':
         ret, image0 = cap0.read()
         if ret:
             break
+
 
     detection0 = TFObjectDetectionAPI(tfSession, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, image0.shape, 'tf_api_0', True)
     ip0 = detection0.get_in_pipe()
@@ -39,6 +41,29 @@ if __name__ == '__main__':
 
     def play(cap, ip, op, lst):
         i = 0
+
+    detection0 = TFObjectDetectionAPI(tfSession, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image0.shape, 'tf_api_0', True)
+    ip0 = detection0.get_in_pipe()
+    op0 = detection0.get_out_pipe()
+
+
+    while True:
+        ret, image1 = cap0.read()
+        if ret:
+            break
+
+    detection1 = TFObjectDetectionAPI(tfSession, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image1.shape, 'tf_api_1', False)
+    ip1 = detection1.get_in_pipe()
+    op1 = detection1.get_out_pipe()
+
+    detection0.run()
+    detection1.run()
+
+
+
+
+    def play(cap, ip, op, lst):
+        i = 0
         while True:
             ret, image = cap.read()
             if not ret:
@@ -55,6 +80,7 @@ if __name__ == '__main__':
                 op.wait()
             i+=1
 
+
     Thread(target=play, args=(cap0, ip0, op0, annotated0)).start()
     Thread(target=play, args=(cap0, ip1, op1, annotated1)).start()
 
@@ -66,3 +92,4 @@ if __name__ == '__main__':
             cv2.imshow("Faster RCNN", annotated1.pop(0))
             cv2.waitKey(1)
         sleep(0.01)
+
