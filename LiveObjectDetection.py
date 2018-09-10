@@ -27,7 +27,7 @@ from threading import Thread
 import cv2
 
 from tf_session.tf_session_utils import VideoStreamer
-from obj_detection.tf_api.ObjectDetection import PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, TFObjectDetectionAPI
+from obj_detection.tf_api.old_tf_api import PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, TFObjectDetectionAPI
 
 detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28)
 cap = cv2.VideoCapture(-1)

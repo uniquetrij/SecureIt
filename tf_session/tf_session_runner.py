@@ -1,5 +1,8 @@
+import threading
 from os.path import dirname, realpath
 from threading import Thread
+from time import sleep
+
 import tensorflow as tf
 
 
@@ -11,23 +14,24 @@ class SessionRunner:
     def __init__(self):
         self.__self_dir_path = dirname(realpath(__file__))
         self.__thread = None
+        self.__pause_resume = None
         self.__runnables = []
         self.__sess = tf.Session(config=self.__config)
+        self.__jobs  = []
 
-    def load(self, session_runnable):
+    def add_job(self, job):
+        self.__jobs.append(job)
+        self.__pause_resume.set()
+
+    def add(self, session_runnable):
         self.__runnables.append(session_runnable)
-        if isinstance(session_runnable, SessionRunnable):
-            with self.__sess.graph.as_default():
-                od_graph_def = tf.GraphDef()
-                with tf.gfile.GFile(session_runnable.get_path_to_frozen_graph(), 'rb') as fid:
-                    serialized_graph = fid.read()
-                    od_graph_def.ParseFromString(serialized_graph)
-                    tf.import_graph_def(od_graph_def, name=session_runnable.get_graph_prefix())
 
-        session_runnable.on_load(self.__sess)
+    def get_session(self):
+        return self.__sess
 
     def start(self):
         if self.__thread is None:
+            self.__pause_resume = threading.Event()
             self.__thread = Thread(target=self.__start)
             self.__thread.start()
 
@@ -39,12 +43,12 @@ class SessionRunner:
         with self.__sess.graph.as_default():
             with self.__sess:
                 while self.__thread:
-                    spawns = []
-                    for runnable in self.__runnables:
-                        thread = Thread(target=runnable.run())
+                    self.__pause_resume.wait()
+                    if self.__jobs:
+                        thread = Thread(target=self.__jobs.pop(0))
                         thread.start()
-                        spawns.append(thread)
-
+                    else:
+                        self.__pause_resume.clear()
 
 class SessionRunnable:
     def __init__(self, graph_prefix, path_to_frozen_graph):
@@ -57,7 +61,7 @@ class SessionRunnable:
     def get_path_to_frozen_graph(self):
         return self.__path_to_frozen_graph
 
-    def on_load(self, tf_sess):
+    def init(self):
         pass
 
     def run(self):

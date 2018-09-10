@@ -1,3 +1,4 @@
+import threading
 from threading import Lock
 
 
@@ -21,6 +22,7 @@ class Pipe:
         self.__lock = Lock()
         self.__closed = False
         self.__process = process
+        self.__pause_resume = threading.Event()
 
     def push(self, obj):
         if self.is_closed():
@@ -32,6 +34,7 @@ class Pipe:
         self.__lock.acquire()
         try:
             self.__lst.append(obj)
+            self.__pause_resume.set()
         finally:
             self.__lock.release()
 
@@ -54,6 +57,9 @@ class Pipe:
         finally:
             if flush:
                 self.__lst.clear()
+
+            if not self.__lst:
+                self.__pause_resume.clear()
             self.__lock.release()
 
     def close(self):
@@ -61,4 +67,8 @@ class Pipe:
 
     def is_closed(self):
         return len(self.__lst) == 0 and self.__closed == True
+
+    def wait(self):
+        self.__pause_resume.wait()
+
 

@@ -32,7 +32,7 @@ class ImageEncoder(SessionRunnable):
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def on_load(self, tf_default_graph):
+    def init(self, tf_default_graph):
         self.input_var = tf_default_graph.get_tensor_by_name(
             self.graph_prefix + 'images:0')
         self.output_var = tf_default_graph.get_tensor_by_name(
