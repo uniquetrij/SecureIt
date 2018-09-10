@@ -16,14 +16,18 @@ class VideoStreamer:
 
 
 class Pipe:
-    def __init__(self):
+    def __init__(self, process=None):
         self.__lst = []
         self.__lock = Lock()
         self.__closed = False
+        self.__process = process
 
     def push(self, obj):
         if self.is_closed():
             raise Exception("can't push into a closed pipe")
+
+        if self.__process:
+            obj = self.__process(obj)
 
         self.__lock.acquire()
         try:
@@ -57,3 +61,4 @@ class Pipe:
 
     def is_closed(self):
         return len(self.__lst) == 0 and self.__closed == True
+

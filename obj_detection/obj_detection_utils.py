@@ -1,19 +1,27 @@
 import numpy as np
 from obj_detection.tf_api.object_detection.utils import visualization_utils as vis_util
-
+import tensorflow as tf
 
 class Inference:
-    def __init__(self, image, boxes, scores, classes, num_detections, category_indices, class_labels_dict):
+    def __init__(self, image,num_detections, boxes, classes, scores, masks , category_indices, class_labels_dict):
+        self.num_detections = int(np.squeeze(num_detections))
         self.image = image
         self.boxes = boxes
-        self.scores = scores
         self.classes = classes
-        self.num_detections = int(num_detections)
+        self.scores = scores
+        self.masks = masks
         self.category_indices = category_indices
         self.class_labels_dict = class_labels_dict
         self.height, self.width = image.shape[0], image.shape[1]
         self.denorm_boxes = None
         self.xywh = None
+
+        # print(self.num_detections)
+        # print(self.boxes.shape)
+        # print(self.classes.shape)
+        # print(self.scores.shape)
+        # print(self.masks.shape)
+        # print(self.masks)
 
     def get_annotated(self):
         annotated = self.image.copy()
@@ -23,6 +31,7 @@ class Inference:
             self.classes.astype(np.int32),
             self.scores,
             self.category_indices,
+            instance_masks=self.masks,
             use_normalized_coordinates=True,
             line_thickness=1)
         return annotated
