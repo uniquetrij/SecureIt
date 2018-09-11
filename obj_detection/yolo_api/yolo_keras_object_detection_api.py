@@ -58,7 +58,23 @@ class YOLOObjectDetectionAPI():
         self.boxes, self.scores, self.classes = self.generate()
 
     def __in_pipe_process(self, image):
-        return Image.fromarray(image)
+        original = image.copy()
+        pil_image = Image.fromarray(original)
+
+        if self.model_image_size != (None, None):
+            assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
+            assert self.model_image_size[1] % 32 == 0, 'Multiples of 32 required'
+            boxed_image = letterbox_image(pil_image, tuple(reversed(self.model_image_size)))
+        else:
+            new_image_size = (pil_image.width - (pil_image.width % 32),
+                              pil_image.height - (pil_image.height % 32))
+            boxed_image = letterbox_image(pil_image, new_image_size)
+        processed = np.array(boxed_image, dtype='float32')
+
+        processed /= 255.
+        processed = np.expand_dims(processed, 0)  # Add batch dimension.
+
+        return (original, processed, pil_image)
         # return image
 
     def __out_pipe_process(self, inference):
@@ -134,7 +150,7 @@ class YOLOObjectDetectionAPI():
         self.input_image_shape = K.placeholder(shape=(2,))
         if self.gpu_num >= 2:
             self.yolo_model = multi_gpu_model(self.yolo_model, gpus=self.gpu_num)
-        print(self.yolo_model.output)
+
         boxes, scores, classes = yolo_eval(self.yolo_model.output, self.anchors,
                                            len(self.class_names), self.input_image_shape,
                                            score_threshold=self.score, iou_threshold=self.iou)
@@ -185,56 +201,31 @@ class YOLOObjectDetectionAPI():
                 self.__out_pipe.close()
                 return
 
-            ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, img_tuple = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.image_np = image_np
+                self.img_tuple = img_tuple
                 self.__session_runner.add_job(self.__job())
             else:
                 self.__in_pipe.wait()
 
     def __job(self):
-        start = timer()
-
-        image = self.image_np
-
-        if self.model_image_size != (None, None):
-            assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
-            assert self.model_image_size[1] % 32 == 0, 'Multiples of 32 required'
-            boxed_image = letterbox_image(image, tuple(reversed(self.model_image_size)))
-        else:
-            new_image_size = (image.width - (image.width % 32),
-                              image.height - (image.height % 32))
-            boxed_image = letterbox_image(image, new_image_size)
-        image_data = np.array(boxed_image, dtype='float32')
-
-        print(image_data.shape)
-        image_data /= 255.
-        image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
-
-        # frozen_graph = self.freeze_session(K.get_session(),
-        #                               output_names=[out.op.name for out in self.yolo_model.outputs])
-        # tf.train.write_graph(frozen_graph, ".", "my_model.pb", as_text=False)
-
+        original, processed, image = self.img_tuple
         out_boxes, out_scores, out_classes = self.__tf_sess.run(
             [self.boxes, self.scores, self.classes],
             feed_dict={
-                self.yolo_model.input: image_data,
+                self.yolo_model.input: processed,
                 self.input_image_shape: [image.size[1], image.size[0]],
-                # K.learning_phase(): 0
             })
 
-        print([out.op.name for out in self.yolo_model.outputs])
-        print(self.yolo_model.input.name)
-        print(self.input_image_shape.name)
-        print(self.boxes.name)
-        print(self.scores.name)
-        print(self.classes.name)
+        print(out_boxes[0])
 
         print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
 
         font = ImageFont.truetype(font='arial.ttf',
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
+
+
 
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
@@ -257,20 +248,22 @@ class YOLOObjectDetectionAPI():
             else:
                 text_origin = np.array([left, top + 1])
 
-            # My kingdom for a good redistributable image drawing library.
-            for i in range(thickness):
-                draw.rectangle(
-                    [left + i, top + i, right - i, bottom - i],
-                    outline=self.colors[c])
-            draw.rectangle(
-                [tuple(text_origin), tuple(text_origin + label_size)],
-                fill=self.colors[c])
-            draw.text(text_origin, label, fill=(0, 0, 0), font=font)
-            del draw
+            cv2.imshow("", original)
+            cv2.waitKey(1)
 
-        end = timer()
-        print(end - start)
-        self.__out_pipe.push((self.image_np, image))
+            # # My kingdom for a good redistributable image drawing library.
+            # for i in range(thickness):
+            #     draw.rectangle(
+            #         [left + i, top + i, right - i, bottom - i],
+            #         outline=self.colors[c])
+            # draw.rectangle(
+            #     [tuple(text_origin), tuple(text_origin + label_size)],
+            #     fill=self.colors[c])
+            # draw.text(text_origin, label, fill=(0, 0, 0), font=font)
+            # del draw
+
+
+        # self.__out_pipe.push((self.img_tuple, image))
 
 
     def close_session(self):

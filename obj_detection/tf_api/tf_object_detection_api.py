@@ -3,24 +3,23 @@ import tarfile
 from os import path
 from os.path import realpath, dirname
 from threading import Thread
-from time import sleep
 
 import numpy as np
-from obj_detection.tf_api.object_detection.utils import ops as utils_ops
 import six.moves.urllib as urllib
 import tensorflow as tf
 
-from tf_session.tf_session_utils import Pipe
 from obj_detection.obj_detection_utils import Inference
 from obj_detection.tf_api.object_detection.utils import label_map_util
-from tf_session.tf_session_runner import SessionRunnable
+from obj_detection.tf_api.object_detection.utils import ops as utils_ops
+from obj_detection.tf_api.object_detection.utils import visualization_utils as vis_util
+from tf_session.tf_session_utils import Pipe
 
 PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
 PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17 = 'ssd_mobilenet_v1_coco_2017_11_17'
 PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28 = 'mask_rcnn_inception_v2_coco_2018_01_28'
 
 
-class TFObjectDetectionAPI(SessionRunnable):
+class TFObjectDetectionAPI:
 
     @staticmethod
     def __get_dir_path():
@@ -57,6 +56,7 @@ class TFObjectDetectionAPI(SessionRunnable):
 
     @staticmethod
     def __fetch_category_indices():
+
         dir_path = TFObjectDetectionAPI.__get_dir_path()
         path_to_labels = os.path.join(dir_path + '/object_detection/data', 'mscoco_label_map.pbtxt')
         class_count = 90
@@ -164,21 +164,18 @@ class TFObjectDetectionAPI(SessionRunnable):
         self.__out_pipe = Pipe(self.__out_pipe_process)
 
         if not graph_prefix:
-            self.graph_prefix = ''
-            graph_prefix = ''
+            self.__graph_prefix = ''
         else:
-            self.graph_prefix = graph_prefix + '/'
-
-        super(TFObjectDetectionAPI, self).__init__(graph_prefix, self.__path_to_frozen_graph)
-
+            self.__graph_prefix = graph_prefix + '/'
         self.init_graph()
 
-
     def __in_pipe_process(self, image):
-        return image
+        original = image.copy()
+        preprocessed = np.expand_dims(original, axis=0)
+        return (original, preprocessed)
 
     def __out_pipe_process(self, inference):
-        image_np, output_dict = inference
+        original_img, output_dict = inference
         num_detections = int(output_dict['num_detections'][0])
         detection_classes = output_dict['detection_classes'][0][:num_detections].astype(np.uint8)
         detection_boxes = output_dict['detection_boxes'][0][:num_detections]
@@ -188,8 +185,8 @@ class TFObjectDetectionAPI(SessionRunnable):
         else:
             detection_masks = None
 
-        return Inference(image_np, num_detections, detection_boxes, detection_classes, detection_scores,
-                         detection_masks, self.__category_index, self.__class_labels_dict)
+        return Inference(original_img, num_detections, detection_boxes, detection_classes, detection_scores,
+                         detection_masks)
 
     def get_in_pipe(self):
         return self.__in_pipe
@@ -200,18 +197,18 @@ class TFObjectDetectionAPI(SessionRunnable):
     def init_graph(self):
         with self.__tf_sess.graph.as_default():
             od_graph_def = tf.GraphDef()
-            with tf.gfile.GFile(self.get_path_to_frozen_graph(), 'rb') as fid:
+            with tf.gfile.GFile(self.__path_to_frozen_graph, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
-                tf.import_graph_def(od_graph_def, name=self.get_graph_prefix())
+                tf.import_graph_def(od_graph_def, name=self.__graph_prefix)
 
         tf_default_graph = self.__tf_sess.graph
 
-        self.__image_tensor = tf_default_graph.get_tensor_by_name(self.graph_prefix + 'image_tensor:0')
+        self.__image_tensor = tf_default_graph.get_tensor_by_name(self.__graph_prefix + 'image_tensor:0')
         tensor_names = {output.name for op in tf_default_graph.get_operations() for output in op.outputs}
         self.__tensor_dict = {}
         for key in ['num_detections', 'detection_boxes', 'detection_classes', 'detection_scores', 'detection_masks']:
-            tensor_name = self.graph_prefix + key + ':0'
+            tensor_name = self.__graph_prefix + key + ':0'
             if tensor_name in tensor_names:
                 self.__tensor_dict[key] = tf_default_graph.get_tensor_by_name(
                     tensor_name)
@@ -244,14 +241,28 @@ class TFObjectDetectionAPI(SessionRunnable):
                 self.__out_pipe.close()
                 return
 
-            ret, image_np = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, image_tuple = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.image_np = image_np
+                self.img_tuple = image_tuple
                 self.__session_runner.add_job(self.__job())
             else:
                 self.__in_pipe.wait()
 
     def __job(self):
         output_dict = self.__tf_sess.run(
-            self.__tensor_dict, feed_dict={self.__image_tensor: np.expand_dims(self.image_np, axis=0)})
-        self.__out_pipe.push((self.image_np, output_dict))
+            self.__tensor_dict, feed_dict={self.__image_tensor: self.img_tuple[1]})
+        self.__out_pipe.push((self.img_tuple[0], output_dict))
+
+    @staticmethod
+    def annotate(inference):
+        annotated = inference.image.copy()
+        vis_util.visualize_boxes_and_labels_on_image_array(
+            annotated,
+            inference.boxes,
+            inference.classes.astype(np.int32),
+            inference.scores,
+            TFObjectDetectionAPI.__fetch_category_indices(),
+            instance_masks=inference.masks,
+            use_normalized_coordinates=True,
+            line_thickness=1)
+        return annotated

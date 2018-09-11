@@ -7,8 +7,8 @@ from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28
 from tf_session.tf_session_runner import SessionRunner
 
-# cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
+cap = cv2.VideoCapture(-1)
+# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
 if __name__ == '__main__':
     tfSession = SessionRunner()
     while True:
@@ -34,8 +34,8 @@ if __name__ == '__main__':
 
         ret, inference = op.pull()
         if ret:
-            print(ret)
-            cv2.imshow("", inference.get_annotated())
+            # print(ret)
+            cv2.imshow("", TFObjectDetectionAPI.annotate(inference))
             cv2.waitKey(1)
         else:
             op.wait()
