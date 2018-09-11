@@ -20,24 +20,31 @@ from obj_tracking.sort_deep.application_util import preprocessing, visualization
 from obj_tracking.sort_deep.deep_sort.tracker import Tracker
 
 
-# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/test.mp4")
-cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/test.mp4")
+# cap = cv2.VideoCapture(-1)
 
 
 tf_session = SessionRunner()
 
-od_api = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, 'od_api', True)
+while True:
+    ret, image = cap.read()
+    if ret:
+        break
+
+od_api = TFObjectDetectionAPI(tf_session, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api',
+                                 True)
+
 od_ip = od_api.get_in_pipe()
 od_op = od_api.get_out_pipe()
-tf_session.load(od_api)
 
-ds_api = ImageEncoder(PRETRAINED_mars_small128, 'ds_api')
+ds_api = ImageEncoder(tf_session, PRETRAINED_mars_small128, 'ds_api')
 ds_ip = ds_api.get_in_pipe()
 ds_op = ds_api.get_out_pipe()
-tf_session.load(ds_api)
+
 
 tf_session.start()
-
+od_api.run()
+ds_api.run()
 viewer = None
 
 def create_unique_color_uchar(tag, hue_step=0.41):
@@ -110,10 +117,10 @@ def test():
         count += 1
         print(count)
 
-        categories = inference.get_category_indices()
+        classes = inference.get_classes()
         scores = inference.get_scores()
-        indices = np.where(np.logical_and(categories == 1, scores > 0.5))[0]
-        labels = [inference.get_labels()[i] for i in indices]
+        indices = np.where(np.logical_and(classes == 1, scores > 0.5))[0]
+        # labels = [inference.get_labels()[i] for i in indices]
         boxes = [inference.get_boxes_as_xywh()[i] for i in indices]
         scores = [inference.get_scores()[i] for i in indices]
         scores = np.asarray(scores)
