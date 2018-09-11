@@ -17,7 +17,7 @@ if __name__ == '__main__':
         if ret:
             break
 
-    detection = YOLOObjectDetectionAPI(tfSession, 'yolo_api', True)
+    detection = YOLOObjectDetectionAPI(tfSession, 'yolo_api', False)
     ip = detection.get_in_pipe()
     op = detection.get_out_pipe()
 
@@ -35,9 +35,9 @@ if __name__ == '__main__':
 
         ret, inference = op.pull()
         if ret:
-            print(ret)
-            # cv2.imshow("", inference.get_annotated())
-            # cv2.waitKey(1)
+            print(inference.get_classes())
+            cv2.imshow("", YOLOObjectDetectionAPI.annotate(inference))
+            cv2.waitKey(1)
         else:
             op.wait()
 

@@ -16,7 +16,7 @@ if __name__ == '__main__':
         if ret:
             break
 
-    detection = TFObjectDetectionAPI(tfSession, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', False)
+    detection = TFObjectDetectionAPI(tfSession, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
     ip = detection.get_in_pipe()
     op = detection.get_out_pipe()
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
 
     # for i in range(1000):
-
+    i = 0
     while True:
         ret, image = cap.read()
         if not ret:
@@ -34,6 +34,7 @@ if __name__ == '__main__':
 
         ret, inference = op.pull()
         if ret:
+            print(inference.get_classes())
             cv2.imshow("", TFObjectDetectionAPI.annotate(inference))
             cv2.waitKey(1)
         else:

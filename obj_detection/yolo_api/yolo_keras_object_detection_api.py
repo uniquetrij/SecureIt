@@ -16,6 +16,7 @@ from keras.layers import Input
 from PIL import Image, ImageFont, ImageDraw
 import tensorflow as tf
 
+from obj_detection.obj_detection_utils import Inference
 from obj_detection.yolo_api.yolo_keras.model import yolo_eval, yolo_body, tiny_yolo_body
 from obj_detection.yolo_api.yolo_keras.utils import letterbox_image
 import os
@@ -45,8 +46,8 @@ class YOLOObjectDetectionAPI():
     def __init__(self, session_runner, graph_prefix=None, flush_pipe_on_read=False):
         self.__dict__.update(self._defaults)  # set up default values
         # self.__dict__.update(kwargs) # and update with user overrides
-        self.class_names = self._get_class()
-        self.anchors = self._get_anchors()
+        YOLOObjectDetectionAPI.class_names = self._get_class()
+        YOLOObjectDetectionAPI.anchors = self._get_anchors()
         self.__graph_prefix = graph_prefix
         self.__flush_pipe_on_read = flush_pipe_on_read
         self.__session_runner = session_runner
@@ -78,21 +79,9 @@ class YOLOObjectDetectionAPI():
         # return image
 
     def __out_pipe_process(self, inference):
-        inference[1].show()
-        # image_np, output_dict = inference
-        # num_detections = int(output_dict['num_detections'][0])
-        # detection_classes = output_dict['detection_classes'][0][:num_detections].astype(np.uint8)
-        # detection_boxes = output_dict['detection_boxes'][0][:num_detections]
-        # detection_scores = output_dict['detection_scores'][0][:num_detections]
-        # if 'detection_masks' in output_dict:
-        #     detection_masks = output_dict['detection_masks'][0][:num_detections]
-        # else:
-        #     detection_masks = None
-        #
-        # return Inference(image_np, num_detections, detection_boxes, detection_classes, detection_scores,
-        #                  detection_masks, self.__category_index, self.__class_labels_dict)
-
-        return inference
+        original_img, output_dict = inference
+        return Inference(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2],
+                         is_normalized=False)
 
     def get_in_pipe(self):
         return self.__in_pipe
@@ -133,18 +122,20 @@ class YOLOObjectDetectionAPI():
                    num_anchors / len(self.yolo_model.output) * (num_classes + 5), \
                 'Mismatch between model and given anchor and class sizes'
 
-        print('{} model, anchors, and classes loaded.'.format(model_path))
+        # print('{} model, anchors, and classes loaded.'.format(model_path))
 
         # Generate colors for drawing bounding boxes.
         hsv_tuples = [(x / len(self.class_names), 1., 1.)
                       for x in range(len(self.class_names))]
-        self.colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
-        self.colors = list(
+        YOLOObjectDetectionAPI.colors = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples))
+        YOLOObjectDetectionAPI.colors = list(
             map(lambda x: (int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)),
-                self.colors))
+                YOLOObjectDetectionAPI.colors))
         np.random.seed(10101)  # Fixed seed for consistent colors across runs.
-        np.random.shuffle(self.colors)  # Shuffle colors to decorrelate adjacent classes.
+        np.random.shuffle(YOLOObjectDetectionAPI.colors)  # Shuffle colors to decorrelate adjacent classes.
+        np.random.shuffle(YOLOObjectDetectionAPI.colors)  # Shuffle colors to decorrelate adjacent classes.
         np.random.seed(None)  # Reset seed to default.
+
 
         # Generate output tensor targets for filtered bounding boxes.
         self.input_image_shape = K.placeholder(shape=(2,))
@@ -217,20 +208,22 @@ class YOLOObjectDetectionAPI():
                 self.input_image_shape: [image.size[1], image.size[0]],
             })
 
-        print(out_boxes[0])
+        self.__out_pipe.push((self.img_tuple[0], (out_boxes, out_classes, out_scores)))
 
-        print('Found {} boxes for {}'.format(len(out_boxes), 'img'))
+    def close_session(self):
+        self.__tf_sess.close()
 
+    @staticmethod
+    def annotate(inference):
+        annotated = inference.image.copy()
+        image = Image.fromarray(inference.get_image())
         font = ImageFont.truetype(font='arial.ttf',
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
-
-
-
-        for i, c in reversed(list(enumerate(out_classes))):
-            predicted_class = self.class_names[c]
-            box = out_boxes[i]
-            score = out_scores[i]
+        for i, c in reversed(list(enumerate(inference.get_classes()))):
+            predicted_class = YOLOObjectDetectionAPI.class_names[c]
+            box = inference.get_boxes(normalized=False)[i]
+            score = inference.get_scores()[i]
 
             label = '{} {:.2f}'.format(predicted_class, score)
             draw = ImageDraw.Draw(image)
@@ -241,34 +234,21 @@ class YOLOObjectDetectionAPI():
             left = max(0, np.floor(left + 0.5).astype('int32'))
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-            print(label, (left, top), (right, bottom))
+            # print(label, (left, top), (right, bottom))
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
             else:
                 text_origin = np.array([left, top + 1])
 
-            cv2.imshow("", original)
-            cv2.waitKey(1)
-
-            # # My kingdom for a good redistributable image drawing library.
-            # for i in range(thickness):
-            #     draw.rectangle(
-            #         [left + i, top + i, right - i, bottom - i],
-            #         outline=self.colors[c])
-            # draw.rectangle(
-            #     [tuple(text_origin), tuple(text_origin + label_size)],
-            #     fill=self.colors[c])
-            # draw.text(text_origin, label, fill=(0, 0, 0), font=font)
-            # del draw
-
-
-        # self.__out_pipe.push((self.img_tuple, image))
-
-
-    def close_session(self):
-        self.__tf_sess.close()
-
-#
-# if __name__ == '__main__':
-#     YOLO().detect_image(Image.open("/home/uniquetrij/PycharmProjects/SecureIt/data/images/2.jpg")).show()
+            # My kingdom for a good redistributable image drawing library.
+            for i in range(thickness):
+                draw.rectangle(
+                    [left + i, top + i, right - i, bottom - i],
+                    outline=YOLOObjectDetectionAPI.colors[c])
+            draw.rectangle(
+                [tuple(text_origin), tuple(text_origin + label_size)],
+                fill=YOLOObjectDetectionAPI.colors[c])
+            draw.text(text_origin, label, fill=(0, 0, 0), font=font)
+            del draw
+        return np.array(image)
