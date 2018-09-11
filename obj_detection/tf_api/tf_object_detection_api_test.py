@@ -34,7 +34,6 @@ if __name__ == '__main__':
 
         ret, inference = op.pull()
         if ret:
-            # print(ret)
             cv2.imshow("", TFObjectDetectionAPI.annotate(inference))
             cv2.waitKey(1)
         else:
