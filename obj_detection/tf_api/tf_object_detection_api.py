@@ -258,11 +258,12 @@ class TFObjectDetectionAPI:
         annotated = inference.image.copy()
         vis_util.visualize_boxes_and_labels_on_image_array(
             annotated,
-            inference.boxes,
-            inference.classes.astype(np.int32),
-            inference.scores,
+            inference.get_boxes(),
+            inference.get_classes().astype(np.int32),
+            inference.get_scores(),
             TFObjectDetectionAPI.__fetch_category_indices(),
-            instance_masks=inference.masks,
+            instance_masks=inference.get_masks(),
             use_normalized_coordinates=True,
             line_thickness=1)
         return annotated
+

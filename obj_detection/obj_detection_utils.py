@@ -56,3 +56,6 @@ class Inference:
                                            self.boxes[i][2] - self.boxes[i][0]])
             self.boxes_as_xywh = np.array(self.boxes_as_xywh)
         return self.boxes_as_xywh
+
+    def get_num_detections(self):
+        return self.num_detections
