@@ -7,21 +7,11 @@ import os
 import cv2
 import numpy as np
 
-from obj_tracking.sort_deep.application_util import preprocessing, visualization
-from obj_tracking.sort_deep.deep_sort import nn_matching
-from obj_tracking.sort_deep.deep_sort.detection import Detection
-from obj_tracking.sort_deep.deep_sort.tracker import Tracker
-
-
-# tfSession = SessionRunner()
-# detection = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, 'tf_api')
-# ip = detection.get_in_pipe()
-# op = detection.get_out_pipe()
-# tfSession.load(detection)
-#
-# tfSession.start()
-#
-# cap = cv2.VideoCapture(-1)
+from application_util import preprocessing
+from application_util import visualization
+from deep_sort import nn_matching
+from deep_sort.detection import Detection
+from deep_sort.tracker import Tracker
 
 
 def gather_sequence_info(sequence_dir, detection_file):
@@ -124,11 +114,8 @@ def create_detections(detection_mat, frame_idx, min_height=0):
         Returns detection responses at given frame index.
 
     """
-
     frame_indices = detection_mat[:, 0].astype(np.int)
-
     mask = frame_indices == frame_idx
-    # print (mask)
 
     detection_list = []
     for row in detection_mat[mask]:
@@ -136,7 +123,6 @@ def create_detections(detection_mat, frame_idx, min_height=0):
         if bbox[3] < min_height:
             continue
         detection_list.append(Detection(bbox, confidence, feature))
-
     return detection_list
 
 
@@ -171,17 +157,13 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         If True, show visualization of intermediate tracking results.
 
     """
-
-    # print ("Detection",np.load(detection_file))
     seq_info = gather_sequence_info(sequence_dir, detection_file)
-
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
     tracker = Tracker(metric)
     results = []
 
     def frame_callback(vis, frame_idx):
-
         print("Processing frame %05d" % frame_idx)
 
         # Load image and generate detections.
@@ -192,26 +174,9 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         # Run non-maxima suppression.
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
-        indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
+        indices = preprocessing.non_max_suppression(
+            boxes, nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
-
-
-
-        #
-        # ret, image = cap.read()
-        # if not ret:
-        #     return
-        # ip.push(image.copy())
-        #
-        # ret, inference = op.pull()
-        # if not ret:
-        #     return
-        #
-        # boxes = inference.get_denorm_boxes()
-        # scores = inference.get_scores()
-        #
-        # # print(boxes)
-        # print(scores)
 
         # Update tracker.
         tracker.predict()
@@ -235,7 +200,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
     # Run tracker.
     if display:
-        visualizer = visualization.Visualization(seq_info, update_ms=5)
+        visualizer = visualization.Visualization(seq_info, update_ms=50)
     else:
         visualizer = visualization.NoVisualization(seq_info)
     visualizer.run(frame_callback)
@@ -244,7 +209,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
     f = open(output_file, 'w')
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (
-            row[0], row[1], row[2], row[3], row[4], row[5]), file=f)
+            row[0], row[1], row[2], row[3], row[4], row[5]),file=f)
 
 
 def parse_args():
@@ -259,25 +224,25 @@ def parse_args():
         required=True)
     parser.add_argument(
         "--output_file", help="Path to the tracking output file. This file will"
-                              " contain the tracking results on completion.",
+        " contain the tracking results on completion.",
         default="/tmp/hypotheses.txt")
     parser.add_argument(
         "--min_confidence", help="Detection confidence threshold. Disregard "
-                                 "all detections that have a confidence lower than this value.",
+        "all detections that have a confidence lower than this value.",
         default=0.8, type=float)
     parser.add_argument(
         "--min_detection_height", help="Threshold on the detection bounding "
-                                       "box height. Detections with height smaller than this value are "
-                                       "disregarded", default=0, type=int)
+        "box height. Detections with height smaller than this value are "
+        "disregarded", default=0, type=int)
     parser.add_argument(
-        "--nms_max_overlap", help="Non-maxima suppression threshold: Maximum "
-                                  "detection overlap.", default=1.0, type=float)
+        "--nms_max_overlap",  help="Non-maxima suppression threshold: Maximum "
+        "detection overlap.", default=1.0, type=float)
     parser.add_argument(
         "--max_cosine_distance", help="Gating threshold for cosine distance "
-                                      "metric (object appearance).", type=float, default=0.2)
+        "metric (object appearance).", type=float, default=0.2)
     parser.add_argument(
         "--nn_budget", help="Maximum size of the appearance descriptors "
-                            "gallery. If None, no budget is enforced.", type=int, default=None)
+        "gallery. If None, no budget is enforced.", type=int, default=None)
     parser.add_argument(
         "--display", help="Show intermediate tracking results",
         default=True, type=bool)
@@ -290,5 +255,5 @@ if __name__ == "__main__":
     #     args.sequence_dir, args.detection_file, args.output_file,
     #     args.min_confidence, args.nms_max_overlap, args.min_detection_height,
     #     args.max_cosine_distance, args.nn_budget, args.display)
-    run("./MOT16/test/MOT16-06", "./resources/detections/MOT16_POI_test/MOT16-06.npy.bkp", "/tmp/hypotheses.txt", 0.3, 1.0,
+    run("./MOT16/test/MOT16-06", "./resources/detections/MOT16_POI_test/MOT16-06.npy", "/tmp/hypotheses.txt", 0.3, 0.45,
         0, 100, None, True)

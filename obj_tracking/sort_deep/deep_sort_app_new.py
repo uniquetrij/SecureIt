@@ -210,7 +210,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
     # Run tracker.
     if display:
-        visualizer = visualization.Visualization(seq_info, update_ms=30)
+        visualizer = visualization.Visualization(seq_info, update_ms=100)
     else:
         visualizer = visualization.NoVisualization(seq_info)
     visualizer.run(frame_callback)
@@ -224,8 +224,8 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
 if __name__ == "__main__":
 
-    run("./MOT16/train/MOT16-02", "./resources/detections/MOT16_POI_train/MOT16-02.npy", "/tmp/hypotheses.txt", 0.3, 100.0,
-        10, 100, None, True)
+    run("./MOT16/train/MOT16-02", "./resources/detections/MOT16_POI_train/MOT16-02.npy", "/tmp/hypotheses.txt", 0.3, 0.45,
+        0, 100, None, True)
 
     # run("./MOT16/test/MOT16-06", "./resources/detections/MOT16_POI_test/MOT16-06.npy", "/tmp/hypotheses.txt", 0.3,
     #     1.0,

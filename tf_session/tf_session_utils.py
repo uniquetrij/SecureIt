@@ -23,6 +23,7 @@ class Pipe:
         self.__closed = False
         self.__process = process
         self.__pause_resume = threading.Event()
+        self.__joint = []
 
     def push(self, obj):
         if self.is_closed():
@@ -35,6 +36,8 @@ class Pipe:
         try:
             self.__lst.append(obj)
             self.__pause_resume.set()
+            for pipe in self.__joint:
+                pipe.push(obj)
         finally:
             self.__lock.release()
 
@@ -70,5 +73,8 @@ class Pipe:
 
     def wait(self):
         self.__pause_resume.wait()
+
+    def join(self, pipe):
+        self.__joint.append(pipe)
 
 

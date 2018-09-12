@@ -48,17 +48,19 @@ class YOLOObjectDetectionAPI():
         else:
             return "Unrecognized attribute name '" + n + "'"
 
-    def __init__(self, session_runner, graph_prefix=None, flush_pipe_on_read=False):
+    def __init__(self, graph_prefix=None, flush_pipe_on_read=False):
         self.__dict__.update(self._defaults)  # set up default values
         # self.__dict__.update(kwargs) # and update with user overrides
         YOLOObjectDetectionAPI.class_names = self._get_class()
         YOLOObjectDetectionAPI.anchors = self._get_anchors()
         self.__graph_prefix = graph_prefix
         self.__flush_pipe_on_read = flush_pipe_on_read
-        self.__session_runner = session_runner
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
+
+    def use_session_runner(self, session_runner):
+        self.__session_runner = session_runner
         K.set_session(session_runner.get_session())
         self.__tf_sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()

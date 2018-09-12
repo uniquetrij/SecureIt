@@ -9,43 +9,49 @@ import cv2
 import tensorflow as tf
 from matplotlib import axis
 
+from obj_detection.yolo_api.yolo_keras_object_detection_api import YOLOObjectDetectionAPI
 from obj_tracking.sort_deep.application_util.image_viewer import ImageViewer
 from obj_tracking.sort_deep.deep_sort import nn_matching
 from obj_tracking.sort_deep.deep_sort.detection import Detection
 from obj_tracking.sort_deep.tracking_api import ImageEncoder, PRETRAINED_mars_small128
 
-from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
-from tf_session.tf_session_runner import SessionRunner
+from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
+    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, \
+    PRETRAINED_faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28
+
 from obj_tracking.sort_deep.application_util import preprocessing, visualization
 from obj_tracking.sort_deep.deep_sort.tracker import Tracker
 
+# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/test.mp4")
+cap = cv2.VideoCapture(-1)
 
-cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/test.mp4")
-# cap = cv2.VideoCapture(-1)
+
+# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
 
 
-tf_session = SessionRunner()
+from tf_session.tf_session_runner import SessionRunner
+session_runner = SessionRunner()
+session_runner.start()
 
 while True:
     ret, image = cap.read()
     if ret:
         break
 
-od_api = TFObjectDetectionAPI(tf_session, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api',
-                                 True)
-
+od_api = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28, image.shape, 'tf_api', True)
+# od_api = YOLOObjectDetectionAPI('yolo_api', True)
 od_ip = od_api.get_in_pipe()
 od_op = od_api.get_out_pipe()
+od_api.use_session_runner(session_runner)
+od_api.run()
 
-ds_api = ImageEncoder(tf_session, PRETRAINED_mars_small128, 'ds_api')
+ds_api = ImageEncoder(session_runner, PRETRAINED_mars_small128, 'ds_api')
 ds_ip = ds_api.get_in_pipe()
 ds_op = ds_api.get_out_pipe()
-
-
-tf_session.start()
-od_api.run()
 ds_api.run()
+
 viewer = None
+
 
 def create_unique_color_uchar(tag, hue_step=0.41):
     """Create a unique RGB color code for a given track id (tag).
@@ -68,7 +74,8 @@ def create_unique_color_uchar(tag, hue_step=0.41):
 
     """
     r, g, b = create_unique_color_float(tag, hue_step)
-    return int(255*r), int(255*g), int(255*b)
+    return int(255 * r), int(255 * g), int(255 * b)
+
 
 def create_unique_color_float(tag, hue_step=0.41):
     """Create a unique RGB color code for a given track id (tag).
@@ -113,12 +120,16 @@ def test():
         ret, inference = od_op.pull()
         if not ret:
             continue
-        cv2.imwrite("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02/img1/"+(str(count).zfill(5))+".jpg", inference.get_image())
+        cv2.imwrite("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02/img1/" + (
+            str(count).zfill(5)) + ".jpg", inference.get_image())
         count += 1
-        print(count)
+        # print(count)
 
         classes = inference.get_classes()
+        # print(len(classes))
         scores = inference.get_scores()
+        # print(len(scores))
+
         indices = np.where(np.logical_and(classes == 1, scores > 0.5))[0]
         # labels = [inference.get_labels()[i] for i in indices]
         boxes = [inference.get_boxes_as_xywh()[i] for i in indices]
@@ -126,15 +137,21 @@ def test():
         scores = np.asarray(scores)
         scores = scores.reshape(len(scores), 1)
 
-        rows = np.concatenate([boxes, scores], axis=1)
+        print(len(classes))
+        # print(len(scores))
 
+        try:
 
+            rows = np.concatenate([boxes, scores], axis=1)
+        except:
+            print("error")
+            continue
 
         features = create_box_encoder()(inference.get_image(), boxes.copy())
         detection_mat = [np.r_[(count + 1, -1, r, -1, -1, -1, f)] for r, f in zip(rows, features)]
 
         min_confidence = 0.3
-        nms_max_overlap = 0
+        nms_max_overlap = 0.45
         min_height = 0
 
         for row in detection_mat:
@@ -156,11 +173,11 @@ def test():
         tracker.predict()
         tracker.update(detections)
         image = inference.get_image().copy()
-        _color = (255,0,0)
+        _color = (255, 0, 0)
         thickness = 1
         for track in tracker.tracks:
 
-            x, y , w , h = track.to_tlwh().astype(np.int)
+            x, y, w, h = track.to_tlwh().astype(np.int)
             pt1 = int(x), int(y)
             pt2 = int(x + w), int(y + h)
             cv2.rectangle(image, pt1, pt2, _color, thickness)
@@ -179,9 +196,7 @@ def test():
         cv2.imshow("detected", image)
         cv2.waitKey(1)
 
-
-
-        detections_out+= detection_mat
+        detections_out += detection_mat
         np.save(output_filename, np.asarray(detections_out), allow_pickle=False)
 
     print("writing to file...")
@@ -238,7 +253,6 @@ def extract_image_patch(image, bbox, patch_shape):
 
 
 def create_box_encoder():
-
     image_shape = ds_api.image_shape
 
     def encoder(image, boxes):
@@ -256,7 +270,6 @@ def create_box_encoder():
 
         ds_ip.push(image_patches)
 
-
         ret, features = ds_op.pull()
         while not ret:
             ret, features = ds_op.pull()
@@ -270,7 +283,7 @@ def generate_detections(output_dir):
     thread.start()
 
     while True:
-    # for i in range(1000):
+        # for i in range(1000):
         ret, frame = cap.read()
         if not ret:
             continue
@@ -278,14 +291,9 @@ def generate_detections(output_dir):
         # cv2.imshow("live", frame)
         # cv2.waitKey(1)
         # print("pushing frame "+(str(i).zfill(5)))
-        od_ip.push(cv2.flip(frame,1))
+        od_ip.push(cv2.flip(frame, 1))
 
     od_ip.close()
-
-
-
-
-
 
 
 if __name__ == "__main__":

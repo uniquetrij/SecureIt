@@ -11,17 +11,18 @@ from tf_session.tf_session_runner import SessionRunner
 cap = cv2.VideoCapture(-1)
 # cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
 if __name__ == '__main__':
-    tfSession = SessionRunner()
+    session_runner = SessionRunner()
     while True:
         ret, image = cap.read()
         if ret:
             break
 
-    detection = YOLOObjectDetectionAPI(tfSession, 'yolo_api', False)
+    detection = YOLOObjectDetectionAPI('yolo_api', False)
     ip = detection.get_in_pipe()
     op = detection.get_out_pipe()
+    detection.use_session_runner(session_runner)
 
-    tfSession.start()
+    session_runner.start()
     detection.run()
 
     # for i in range(1000):
@@ -41,4 +42,4 @@ if __name__ == '__main__':
         else:
             op.wait()
 
-    tfSession.stop()
+    session_runner.stop()

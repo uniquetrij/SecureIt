@@ -5,6 +5,7 @@ import argparse
 import numpy as np
 import cv2
 import tensorflow as tf
+from keras.applications import resnet50
 
 
 def _run_in_batches(f, data_dict, out, batch_size):
@@ -66,34 +67,23 @@ def extract_image_patch(image, bbox, patch_shape):
     image = image[sy:ey, sx:ex]
     image = cv2.resize(image, tuple(patch_shape[::-1]))
     return image
-
-
 class ImageEncoder(object):
 
     def __init__(self, checkpoint_filename, input_name="images",
                  output_name="features"):
-        self.session = tf.Session()
-        with tf.gfile.GFile(checkpoint_filename, "rb") as file_handle:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString(file_handle.read())
-        tf.import_graph_def(graph_def, name="net")
-        self.input_var = tf.get_default_graph().get_tensor_by_name(
-            "net/%s:0" % input_name)
-        self.output_var = tf.get_default_graph().get_tensor_by_name(
-            "net/%s:0" % output_name)
-
-        assert len(self.output_var.get_shape()) == 2
-        assert len(self.input_var.get_shape()) == 4
-        self.feature_dim = self.output_var.get_shape().as_list()[-1]
-        self.image_shape = self.input_var.get_shape().as_list()[1:]
+        self.model = resnet50.ResNet50(weights='imagenet', include_top=False, pooling='avg')
+        # print("Model Loaded")
+        self.feature_dim = (2048)
+        self.image_shape = (224,224)
 
     def __call__(self, data_x, batch_size=32):
         out = np.zeros((len(data_x), self.feature_dim), np.float32)
-        _run_in_batches(
-            lambda x: self.session.run(self.output_var, feed_dict=x),
-            {self.input_var: data_x}, out, batch_size)
-        print(out.shape)
-        print(out[0])
+        counter = 0
+        for patch in data_x:
+            img = np.expand_dims(patch, axis=0)
+            out[counter] = self.model.predict(img)
+        # print(out.shape)
+        # print(out[0])
         return out
 
 

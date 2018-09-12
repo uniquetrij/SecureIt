@@ -17,6 +17,7 @@ from tf_session.tf_session_utils import Pipe
 PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
 PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17 = 'ssd_mobilenet_v1_coco_2017_11_17'
 PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28 = 'mask_rcnn_inception_v2_coco_2018_01_28'
+PRETRAINED_faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28 = 'faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28'
 
 
 class TFObjectDetectionAPI:
@@ -151,14 +152,13 @@ class TFObjectDetectionAPI:
         90: 'toothbrush',
     }
 
-    def __init__(self, session_runner, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None,
+    def __init__(self,model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None,
                  graph_prefix=None, flush_pipe_on_read=False):
-        self.__tf_sess = session_runner.get_session()
         self.__category_index = self.__fetch_category_indices()
         self.__path_to_frozen_graph = self.__fetch_model_path(model_name)
         self.__flush_pipe_on_read = flush_pipe_on_read
         self.__image_shape = image_shape
-        self.__session_runner = session_runner
+
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
@@ -167,7 +167,6 @@ class TFObjectDetectionAPI:
             self.__graph_prefix = ''
         else:
             self.__graph_prefix = graph_prefix + '/'
-        self.init_graph()
 
     def __in_pipe_process(self, image):
         original = image.copy()
@@ -194,7 +193,9 @@ class TFObjectDetectionAPI:
     def get_out_pipe(self):
         return self.__out_pipe
 
-    def init_graph(self):
+    def use_session_runner(self, session_runner):
+        self.__session_runner = session_runner
+        self.__tf_sess = session_runner.get_session()
         with self.__tf_sess.graph.as_default():
             od_graph_def = tf.GraphDef()
             with tf.gfile.GFile(self.__path_to_frozen_graph, 'rb') as fid:

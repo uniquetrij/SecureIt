@@ -28,7 +28,7 @@ def _pdist(a, b):
     return r2
 
 
-def _cosine_distance(a, b, data_is_normalized=False):
+def _cosine_distance(a, b, data_is_normalized=True):
     """Compute pair-wise cosine distance between points in `a` and `b`.
 
     Parameters
