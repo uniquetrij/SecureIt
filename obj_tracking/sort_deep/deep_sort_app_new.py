@@ -210,7 +210,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
     # Run tracker.
     if display:
-        visualizer = visualization.Visualization(seq_info, update_ms=100)
+        visualizer = visualization.Visualization(seq_info, update_ms=500)
     else:
         visualizer = visualization.NoVisualization(seq_info)
     visualizer.run(frame_callback)

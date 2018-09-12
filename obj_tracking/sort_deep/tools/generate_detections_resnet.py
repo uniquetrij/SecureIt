@@ -34,7 +34,8 @@ def extract_image_patch(image, bbox, patch_shape):
     patch_shape : Optional[array_like]
         This parameter can be used to enforce a desired patch shape
         (height, width). First, the `bbox` is adapted to the aspect ratio
-        of the patch shape, then it is clipped at the image boundaries.
+        of the patch shape, then it is clipped  # predict(img)  # for kal!
+            # print(pos)at the image boundaries.
         If None, the shape is computed from :arg:`bbox`.
 
     Returns

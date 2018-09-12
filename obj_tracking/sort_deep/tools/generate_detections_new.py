@@ -176,7 +176,8 @@ def test():
         _color = (255, 0, 0)
         thickness = 1
         for track in tracker.tracks:
-
+            if not track.is_confirmed() or track.time_since_update > 1:
+                continue
             x, y, w, h = track.to_tlwh().astype(np.int)
             pt1 = int(x), int(y)
             pt2 = int(x + w), int(y + h)
