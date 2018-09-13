@@ -51,7 +51,7 @@ class YOLOObjectDetectionAPI():
     def __init__(self, graph_prefix=None, flush_pipe_on_read=False):
         self.__dict__.update(self._defaults)  # set up default values
         # self.__dict__.update(kwargs) # and update with user overrides
-        YOLOObjectDetectionAPI.class_names = self._get_class()
+        YOLOObjectDetectionAPI.class_names, self.__category_dict = self._get_class()
         YOLOObjectDetectionAPI.anchors = self._get_anchors()
         self.__graph_prefix = graph_prefix
         self.__flush_pipe_on_read = flush_pipe_on_read
@@ -102,7 +102,11 @@ class YOLOObjectDetectionAPI():
         with open(classes_path) as f:
             class_names = f.readlines()
         class_names = [c.strip() for c in class_names]
-        return class_names
+        category_dict = {}
+        for id, name in enumerate(class_names):
+            category_dict[id] = name
+            category_dict[name] = id
+        return class_names, category_dict
 
     def _get_anchors(self):
         dir_path = YOLOObjectDetectionAPI.__get_dir_path()
@@ -262,3 +266,9 @@ class YOLOObjectDetectionAPI():
             draw.text(text_origin, label, fill=(0, 0, 0), font=font)
             del draw
         return np.array(image)
+
+    def get_category(self, category):
+        return self.__category_dict[category]
+
+
+

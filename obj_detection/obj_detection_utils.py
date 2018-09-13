@@ -1,7 +1,7 @@
 import numpy as np
 
 class Inference:
-    def __init__(self, image, num_detections, boxes, classes, scores, masks = None, is_normalized = True):
+    def __init__(self, image, num_detections, boxes, classes, scores, masks = None, is_normalized = True, get_category_fnc=None, anotator=None):
         self.num_detections = int(np.squeeze(num_detections))
         self.image = image
         self.height, self.width = image.shape[0], image.shape[1]
@@ -15,6 +15,8 @@ class Inference:
         self.scores = scores
         self.masks = masks
         self.boxes_as_xywh = None
+        self.get_category_fnc=get_category_fnc
+        self.anotator = anotator
 
     def get_scores(self, index = None):
         if index:
@@ -59,3 +61,9 @@ class Inference:
 
     def get_num_detections(self):
         return self.num_detections
+
+    def get_category(self, category):
+        return self.get_category_fnc(category)
+
+    def anotate(self):
+        return self.anotator(self)
