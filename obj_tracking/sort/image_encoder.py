@@ -25,7 +25,7 @@ class ImageEncoder(object):
         self.feature_dim = (2048)
         self.image_shape = (224,224, 3)
 
-    def get_features(self, image, boxes):
+    def extract_features(self, image, boxes):
 
         out = np.zeros((len(boxes), self.feature_dim), np.float32)
         counter = 0

@@ -72,9 +72,9 @@ class TFObjectDetectionAPI:
 
         return category_index, category_dict
 
-    def __init__(self,model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None,
+    def __init__(self, model_name=PRETRAINED_ssd_mobilenet_v1_coco_2017_11_17, image_shape=None,
                  graph_prefix=None, flush_pipe_on_read=False):
-        self.__category_index , self.__category_dict = self.__fetch_category_indices()
+        self.__category_index, self.__category_dict = self.__fetch_category_indices()
         self.__path_to_frozen_graph = self.__fetch_model_path(model_name)
         self.__flush_pipe_on_read = flush_pipe_on_read
         self.__image_shape = image_shape
@@ -105,7 +105,8 @@ class TFObjectDetectionAPI:
             detection_masks = None
 
         return Inference(original_img, num_detections, detection_boxes, detection_classes, detection_scores,
-                         detection_masks)
+                         masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
+                         anotator=self.annotate)
 
     def get_in_pipe(self):
         return self.__in_pipe
@@ -190,6 +191,3 @@ class TFObjectDetectionAPI:
             use_normalized_coordinates=True,
             line_thickness=1)
         return annotated
-
-
-

@@ -87,8 +87,8 @@ class YOLOObjectDetectionAPI():
 
     def __out_pipe_process(self, inference):
         original_img, output_dict = inference
-        return Inference(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2],
-                         is_normalized=False)
+        return Inference(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2], masks=None,
+                         is_normalized=False, get_category_fnc=self.get_category, anotator=self.annotate)
 
     def get_in_pipe(self):
         return self.__in_pipe

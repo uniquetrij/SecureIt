@@ -1,16 +1,25 @@
+import time
+
 import numpy as np
 from sklearn.utils.linear_assignment_ import linear_assignment
 
 
 class Tracker(object):
-    track_count = 0
 
-    def __init__(self, bbox, f_vec):
-        self.id = Tracker.track_count
-        Tracker.track_count += 1
-        self.x = bbox
-        self.time_since_update = 0
-        self.features = f_vec
+    num_tracks = 0
+
+    @staticmethod
+    def __get_next_id():
+        Tracker.num_tracks += 1
+        return Tracker.num_tracks
+
+    def __init__(self, bbox, features, hit_streak_threshold = 10):
+        self.__id = self.__get_next_id()
+        self.__bbox = bbox
+        self.__features = [features]
+        self.__hit_streak = 0
+        self.__time_since_update = time.time()
+        self.__hit_streak_threshold = hit_streak_threshold
 
     # def convert_bbox_to_z(bbox):
     #     """
@@ -26,16 +35,33 @@ class Tracker(object):
     #     r = w / float(h)
     #     return np.array([x, y, s, r]).reshape((4, 1))
 
-    def get_state(self):
+    def get_features(self):
+        return self.__features
+
+    def get_bbox(self):
         """
         Returns the current bounding box estimate.
         """
-        return self.x
+        return self.__bbox
 
-    def update(self, bbox, img=None):
-        self.time_since_update = 0
-        if bbox != []:
-            self.x = bbox
+    def get_time_since_update(self):
+        return self.__time_since_update
+
+    def get_id(self):
+        return self.__id
+
+    def update(self, bbox, f_vec):
+        self.__features.append(f_vec)
+        if len(self.__features) > 20:
+            self.__features.pop(0)
+        self.__time_since_update = time.time()
+        self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
+
+        if bbox:
+            self.__bbox = bbox
+
+    def get_hit_streak(self):
+        return self.__hit_streak
 
     @staticmethod
     def associate_detections_to_trackers(f_vecs, trackers, similarity_threshold=0.3):
@@ -45,12 +71,10 @@ class Tracker(object):
         Returns 3 lists of matches, unmatched_detections and unmatched_trackers
         """
 
-        # print("Here...")
         if (len(trackers) == 0):
-            print("first time detected")
             return np.empty((0, 2), dtype=int), np.arange(len(f_vecs)), np.empty((0, 4), dtype=int)
-        similarity_matrix = np.zeros((len(f_vecs), len(trackers)), dtype=np.float32)
 
+        similarity_matrix = np.zeros((len(f_vecs), len(trackers)), dtype=np.float32)
         for d, det in enumerate(f_vecs):
             for t, trk in enumerate(trackers):
                 similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
@@ -70,6 +94,7 @@ class Tracker(object):
         for t, trk in enumerate(trackers):
             if (t not in matched_indices[:, 1]):
                 unmatched_trackers.append(t)
+                trk.__hit_streak = max(0, trk.__hit_streak-1)
 
         # filter out matched with low IOU
         matches = []
@@ -88,12 +113,14 @@ class Tracker(object):
 
     @staticmethod
     def get_cosine_similarity(tracker, f_vec):
-        a = tracker.features
-        b = f_vec
-        a = np.expand_dims(a, axis=0)
-        b = np.expand_dims(b, axis=0)
-        # print(a.shape)
-        # print(b.shape)
-        a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
-        b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
-        return np.dot(a, b.T)
+        maximum = 0
+        for a in tracker.get_features():
+            b = f_vec
+            a = np.expand_dims(a, axis=0)
+            b = np.expand_dims(b, axis=0)
+            # print(a.shape)
+            # print(b.shape)
+            a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
+            b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
+            maximum = max(maximum, np.dot(a, b.T))
+        return maximum
