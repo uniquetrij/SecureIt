@@ -15,11 +15,11 @@ from obj_tracking.sort.tracker import Tracker
 
 class Sort:
 
-    def __init__(self, max_age_secs=120, min_hits=3):
+    def __init__(self, max_age=120, min_hits=3):
         """
         Sets key parameters for SORT
         """
-        self.max_age = max_age_secs
+        self.max_age = max_age
         self.min_hits = min_hits
         self.trackers = []
         self.frame_count = 0
@@ -64,8 +64,9 @@ class Sort:
                 ret.append(np.concatenate((d, [trk.get_id()])).reshape(1, -1))  # +1 as MOT benchmark requires positive
             i -= 1
             # remove dead tracklet
-            if (timestamp - trk.get_time_since_update() > self.max_age):
+            if (trk.get_time_since_update() > self.max_age):
                 self.trackers.pop(i)
+        print(len(self.trackers))
         if (len(ret) > 0):
             return np.concatenate(ret)
         return np.empty((0, 5))
