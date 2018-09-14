@@ -52,7 +52,7 @@ class Tracker(object):
 
     def update(self, bbox, f_vec):
         self.__features.append(f_vec)
-        if len(self.__features) > 20:
+        if len(self.__features) > 10:
             self.__features.pop(0)
         self.__time_since_update = time.time()
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
