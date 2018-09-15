@@ -7,8 +7,6 @@ from __future__ import print_function
 import time
 
 import numpy as np
-
-from obj_tracking.sort.correlation_tracker import CorrelationTracker
 from obj_tracking.sort.image_encoder import ImageEncoder
 from obj_tracking.sort.tracker import Tracker
 

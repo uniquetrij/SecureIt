@@ -2,7 +2,7 @@
 @author: Mahmoud I.Zidan
 """
 
-from dlib import correlation_tracker, rectangle
+# from dlib import correlation_tracker, rectangle
 
 '''Appearance Model'''
 class CorrelationTracker:

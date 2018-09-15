@@ -236,7 +236,7 @@ class YOLOObjectDetectionAPI():
         thickness = (image.size[0] + image.size[1]) // 300
         for i, c in reversed(list(enumerate(inference.get_classes()))):
             predicted_class = YOLOObjectDetectionAPI.class_names[c]
-            box = inference.get_boxes(normalized=False)[i]
+            box = inference.get_boxes_tlbr(normalized=False)[i]
             score = inference.get_scores()[i]
 
             label = '{} {:.2f}'.format(predicted_class, score)

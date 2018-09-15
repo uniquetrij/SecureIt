@@ -350,7 +350,7 @@ if __name__ == '__main__':
         bags = []
         prev_image=[]
         if ret:
-            detections = inference.get_boxes(normalized=False).astype(np.int)
+            detections = inference.get_boxes_tlbr(normalized=False).astype(np.int)
             classes = inference.get_classes()
             scores = inference.get_scores()
             for i in range(len(classes)):

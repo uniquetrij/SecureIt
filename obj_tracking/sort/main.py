@@ -65,7 +65,7 @@ while True:
 
     ret, inference = op.pull()
     if ret:
-        detections = inference.get_boxes(normalized=False)
+        detections = inference.get_boxes_tlbr(normalized=False)
         frame = inference.get_image()
         classes = inference.get_classes()
         person_detections = []

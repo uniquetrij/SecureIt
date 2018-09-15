@@ -28,10 +28,10 @@ class Sort:
 
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
-        self.__out_pipe = Pipe(self.__out_pipe_process)
+        self.__outpass_pipe = Pipe(self.__out_pipe_process)
 
     def __in_pipe_process(self, inference):
-        detections = inference.get_boxes(normalized=False)
+        detections = inference.get_boxes_tlbr(normalized=False)
         frame = inference.get_image()
         classes = inference.get_classes()
         person_detections = []

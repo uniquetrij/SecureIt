@@ -163,17 +163,16 @@ class TFObjectDetectionAPI:
                 self.__out_pipe.close()
                 return
 
-            ret, image_tuple = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, data = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.img_tuple = image_tuple
-                self.__session_runner.add_job(self.__job())
+                self.__session_runner.add_job(self.__job, data)
             else:
                 self.__in_pipe.wait()
 
-    def __job(self):
+    def __job(self, data):
         output_dict = self.__tf_sess.run(
-            self.__tensor_dict, feed_dict={self.__image_tensor: self.img_tuple[1]})
-        self.__out_pipe.push((self.img_tuple[0], output_dict))
+            self.__tensor_dict, feed_dict={self.__image_tensor: data[1]})
+        self.__out_pipe.push((data[0], output_dict))
 
     def get_category(self, category):
         return self.__category_dict[category]
@@ -183,10 +182,10 @@ class TFObjectDetectionAPI:
         annotated = inference.image.copy()
         vis_util.visualize_boxes_and_labels_on_image_array(
             annotated,
-            inference.get_boxes(),
+            inference.get_boxes_tlbr(),
             inference.get_classes().astype(np.int32),
             inference.get_scores(),
-            TFObjectDetectionAPI.__fetch_category_indices(),
+            TFObjectDetectionAPI.__fetch_category_indices()[0],
             instance_masks=inference.get_masks(),
             use_normalized_coordinates=True,
             line_thickness=1)

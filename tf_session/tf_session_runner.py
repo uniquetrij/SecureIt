@@ -7,20 +7,23 @@ import tensorflow as tf
 
 
 class SessionRunner:
-
     __config = tf.ConfigProto()
     __config.gpu_options.allow_growth = True
+    __counter = 0
 
-    def __init__(self):
+    def __init__(self, is_live=True):
         self.__self_dir_path = dirname(realpath(__file__))
         self.__thread = None
         self.__pause_resume = None
         self.__runnables = []
         self.__sess = tf.Session(config=self.__config)
-        self.__jobs  = []
+        self.__jobs = []
+        self.__args = []
+        self.__live = is_live
 
-    def add_job(self, job):
+    def add_job(self, job, args):
         self.__jobs.append(job)
+        self.__args.append(args)
         self.__pause_resume.set()
 
     def add(self, session_runnable):
@@ -40,45 +43,22 @@ class SessionRunner:
             self.__thread = None
 
     def __start(self):
-        with self.__sess.graph.as_default():
-            with self.__sess:
-                while self.__thread:
-                    self.__pause_resume.wait()
-                    if self.__jobs:
-                        thread = Thread(target=self.__jobs.pop(0))
-                        thread.start()
-                    else:
-                        self.__pause_resume.clear()
-
-class SessionRunnable:
-    def __init__(self, graph_prefix, path_to_frozen_graph):
-        self.__name = graph_prefix
-        self.__path_to_frozen_graph = path_to_frozen_graph
-
-    def get_graph_prefix(self):
-        return self.__name
-
-    def get_path_to_frozen_graph(self):
-        return self.__path_to_frozen_graph
-
-    def init_graph(self):
-        pass
-
-    def run(self):
-        pass
+        while self.__thread:
+            self.__pause_resume.wait()
+            if self.__live:
+                self.__exec()
+            else:
+                Thread(target=self.__exec).start()
 
 
-class KerasRunnable:
-    def __init__(self, graph_prefix):
-        self.__name = graph_prefix
 
-    def get_graph_prefix(self):
-        return self.__name
-
-    def on_load(self, tf_sess):
-        pass
-
-    def run(self):
-        pass
-
-
+    def __exec(self):
+        with self.__sess.as_default():
+            with self.__sess.graph.as_default():
+                if self.__jobs:
+                    try:
+                        self.__jobs.pop(0)(self.__args.pop(0))
+                    except:
+                        pass
+                else:
+                    self.__pause_resume.clear()

@@ -30,7 +30,7 @@ class Inference:
         else:
             return self.classes
 
-    def get_boxes(self, index = None, normalized = True):
+    def get_boxes_tlbr(self, index = None, normalized = True):
         if normalized:
             boxes = self.boxes_normalized
         else:
