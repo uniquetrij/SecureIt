@@ -65,9 +65,15 @@ class YOLOObjectDetectionAPI():
         self.__tf_sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
 
-    def __in_pipe_process(self, image):
-        original = image.copy()
-        pil_image = Image.fromarray(original)
+    def __in_pipe_process(self, args_dict):
+
+        image = args_dict['image'].copy()
+        try:
+            ret_pipe = args_dict['ret_pipe']
+        except:
+            ret_pipe = None
+
+        pil_image = Image.fromarray(image)
 
         if self.model_image_size != (None, None):
             assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
@@ -77,18 +83,21 @@ class YOLOObjectDetectionAPI():
             new_image_size = (pil_image.width - (pil_image.width % 32),
                               pil_image.height - (pil_image.height % 32))
             boxed_image = letterbox_image(pil_image, new_image_size)
-        processed = np.array(boxed_image, dtype='float32')
+        data = np.array(boxed_image, dtype='float32')
 
-        processed /= 255.
-        processed = np.expand_dims(processed, 0)  # Add batch dimension.
+        data /= 255.
+        data = np.expand_dims(data, 0)  # Add batch dimension.
 
-        return (original, processed, pil_image)
+        return {'image': image, 'data': data, 'ret_pipe': ret_pipe, 'pil_image':pil_image}
         # return image
 
     def __out_pipe_process(self, inference):
-        original_img, output_dict = inference
-        return Inference(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2], masks=None,
+        output_dict, original_img, ret_pipe = inference
+        inference = Inference(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2], masks=None,
                          is_normalized=False, get_category_fnc=self.get_category, anotator=self.annotate)
+        if ret_pipe:
+            ret_pipe.push(inference)
+        return inference
 
     def get_in_pipe(self):
         return self.__in_pipe
@@ -206,23 +215,26 @@ class YOLOObjectDetectionAPI():
                 self.__out_pipe.close()
                 return
 
-            ret, img_tuple = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, pull = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.img_tuple = img_tuple
-                self.__session_runner.add_job(self.__job())
+                self.__session_runner.get_in_pipe().push(
+                    (self.__job, {'data': pull['data'], 'out_pipe': self.__out_pipe, 'image': pull['image'],
+                                  'ret_pipe': pull['ret_pipe'], 'pil_image':pull['pil_image']}))
             else:
                 self.__in_pipe.wait()
 
-    def __job(self):
-        original, processed, image = self.img_tuple
+    def __job(self, args_dict):
+        data = args_dict['data']
+        pil_image = args_dict['pil_image']
+        image = args_dict['image']
         out_boxes, out_scores, out_classes = self.__tf_sess.run(
             [self.boxes, self.scores, self.classes],
             feed_dict={
-                self.yolo_model.input: processed,
-                self.input_image_shape: [image.size[1], image.size[0]],
+                self.yolo_model.input: data,
+                self.input_image_shape: [pil_image.size[1], pil_image.size[0]],
             })
 
-        self.__out_pipe.push((self.img_tuple[0], (out_boxes, out_classes, out_scores)))
+        self.__out_pipe.push(((out_boxes, out_classes, out_scores), args_dict['image'], args_dict['ret_pipe']))
 
     def close_session(self):
         self.__tf_sess.close()
