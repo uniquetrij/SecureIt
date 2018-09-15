@@ -29,7 +29,6 @@ if __name__ == '__main__':
     ret_pipe = Pipe()
 
     # for i in range(1000):
-    i = 0
     while True:
         ret, image = cap.read()
         if not ret:
@@ -39,7 +38,7 @@ if __name__ == '__main__':
         ret, inference = ret_pipe.pull()
         if ret:
             print(inference.get_classes())
-            cv2.imshow("", TFObjectDetectionAPI.annotate(inference))
+            cv2.imshow("", inference.annotate())
             cv2.waitKey(1)
         else:
             ret_pipe.wait()
