@@ -5,29 +5,24 @@ from time import sleep
 
 import tensorflow as tf
 
+from tf_session.tf_session_utils import Pipe
+
 
 class SessionRunner:
     __config = tf.ConfigProto()
     __config.gpu_options.allow_growth = True
     __counter = 0
 
-    def __init__(self, is_live=True):
+    def __init__(self, threading=False):
         self.__self_dir_path = dirname(realpath(__file__))
         self.__thread = None
         self.__pause_resume = None
-        self.__runnables = []
         self.__sess = tf.Session(config=self.__config)
-        self.__jobs = []
-        self.__args = []
-        self.__live = is_live
+        self.__in_pipe = Pipe()
+        self.__threading = threading
 
-    def add_job(self, job, args):
-        self.__jobs.append(job)
-        self.__args.append(args)
-        self.__pause_resume.set()
-
-    def add(self, session_runnable):
-        self.__runnables.append(session_runnable)
+    def get_in_pipe(self):
+        return self.__in_pipe
 
     def get_session(self):
         return self.__sess
@@ -44,21 +39,17 @@ class SessionRunner:
 
     def __start(self):
         while self.__thread:
-            self.__pause_resume.wait()
-            if self.__live:
-                self.__exec()
+            ret, pull = self.__in_pipe.pull()
+            if ret:
+                if self.__threading:
+                    Thread(target=self.__exec, args=(pull,)).start()
+                else:
+                    self.__exec(pull)
             else:
-                Thread(target=self.__exec).start()
+                self.__in_pipe.wait()
 
-
-
-    def __exec(self):
+    def __exec(self, pull):
+        job_fnc, args_dict = pull
         with self.__sess.as_default():
             with self.__sess.graph.as_default():
-                if self.__jobs:
-                    try:
-                        self.__jobs.pop(0)(self.__args.pop(0))
-                    except:
-                        pass
-                else:
-                    self.__pause_resume.clear()
+                job_fnc(args_dict)

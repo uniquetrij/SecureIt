@@ -88,13 +88,17 @@ class TFObjectDetectionAPI:
         else:
             self.__graph_prefix = graph_prefix + '/'
 
-    def __in_pipe_process(self, image):
-        original = image.copy()
-        preprocessed = np.expand_dims(original, axis=0)
-        return (original, preprocessed)
+    def __in_pipe_process(self, args_dict):
+        image = args_dict['image'].copy()
+        data = np.expand_dims(image, axis=0)
+        try:
+            ret_pipe = args_dict['ret_pipe']
+        except:
+            ret_pipe = None
+        return {'image': image, 'data': data, 'ret_pipe': ret_pipe}
 
     def __out_pipe_process(self, inference):
-        original_img, output_dict = inference
+        output_dict, original_img, ret_pipe = inference
         num_detections = int(output_dict['num_detections'][0])
         detection_classes = output_dict['detection_classes'][0][:num_detections].astype(np.uint8)
         detection_boxes = output_dict['detection_boxes'][0][:num_detections]
@@ -104,9 +108,13 @@ class TFObjectDetectionAPI:
         else:
             detection_masks = None
 
-        return Inference(original_img, num_detections, detection_boxes, detection_classes, detection_scores,
-                         masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
-                         anotator=self.annotate)
+        inference = Inference(original_img, num_detections, detection_boxes, detection_classes, detection_scores,
+                              masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
+                              anotator=self.annotate)
+
+        if ret_pipe:
+            ret_pipe.push(inference)
+        return inference
 
     def get_in_pipe(self):
         return self.__in_pipe
@@ -163,16 +171,18 @@ class TFObjectDetectionAPI:
                 self.__out_pipe.close()
                 return
 
-            ret, data = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, pull = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.__session_runner.add_job(self.__job, data)
+                self.__session_runner.get_in_pipe().push(
+                    (self.__job, {'data': pull['data'], 'out_pipe': self.__out_pipe, 'image': pull['image'],
+                                  'ret_pipe': pull['ret_pipe']}))
             else:
                 self.__in_pipe.wait()
 
-    def __job(self, data):
-        output_dict = self.__tf_sess.run(
-            self.__tensor_dict, feed_dict={self.__image_tensor: data[1]})
-        self.__out_pipe.push((data[0], output_dict))
+    def __job(self, args_dict):
+        data = args_dict['data']
+        output_dict = self.__tf_sess.run(self.__tensor_dict, feed_dict={self.__image_tensor: data})
+        args_dict['out_pipe'].push((output_dict, args_dict['image'], args_dict['ret_pipe']))
 
     def get_category(self, category):
         return self.__category_dict[category]
