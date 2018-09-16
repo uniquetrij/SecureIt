@@ -2,6 +2,7 @@ from threading import Thread
 from time import sleep
 
 import cv2
+from pafy import pafy
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, \
