@@ -1,11 +1,12 @@
 import cv2
-from keras.applications import resnet50
 
-from feature_extraction.resnet50_api import ResNet50ExtractorAPI
+from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from tf_session.tf_session_runner import SessionRunner
 import numpy as np
-from  keras import backend as K
 import tensorflow as tf
+
+from tf_session.tf_session_utils import Pipe, Inference
+
 cap = cv2.VideoCapture(-1)
 # cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
 if __name__ == '__main__':
@@ -25,12 +26,13 @@ if __name__ == '__main__':
 
     extractor = ResNet50ExtractorAPI('rn50_api', True)
     ip = extractor.get_in_pipe()
-    op = extractor.get_out_pipe()
+    # op = extractor.get_out_pipe()
     extractor.use_session_runner(session_runner)
 
     session_runner.start()
     extractor.run()
 
+    ret_pipe = Pipe()
 
     # for i in range(1000):
     i = 0
@@ -38,12 +40,12 @@ if __name__ == '__main__':
         ret, image = cap.read()
         if not ret:
             continue
-        ip.push(image.copy())
+        ip.push(Inference(image,ret_pipe,{}))
 
-        ret, inference = op.pull()
+        ret, feature_inference = ret_pipe.pull()
         if ret:
-            print(inference[1].shape)
+            print(feature_inference.get_result().shape)
         else:
-            op.wait()
+            ret_pipe.wait()
 
     session_runner.stop()

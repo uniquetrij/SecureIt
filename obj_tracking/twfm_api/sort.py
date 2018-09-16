@@ -32,7 +32,7 @@ class Sort:
 
     def __in_pipe_process(self, inference):
         detections = inference.get_boxes_tlbr(normalized=False)
-        frame = inference.get_image()
+        frame = inference.get_input()
         classes = inference.get_classes()
         person_detections = []
         scores = inference.get_scores()

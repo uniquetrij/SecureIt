@@ -242,7 +242,7 @@ class YOLOObjectDetectionAPI():
     @staticmethod
     def annotate(inference):
         annotated = inference.image.copy()
-        image = Image.fromarray(inference.get_image())
+        image = Image.fromarray(inference.get_input())
         font = ImageFont.truetype(font='arial.ttf',
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300

@@ -78,3 +78,35 @@ class Pipe:
         self.__joint.append(pipe)
 
 
+class Inference:
+    def __init__(self, input, return_pipe=None, meta_dict={}):
+        self.__input = input
+        self.__meta_dict = meta_dict
+        self.__return_pipe = return_pipe
+        self.__data = None
+        self.__result = None
+
+    def get_input(self):
+        return self.__input
+
+    def get_meta_dict(self):
+        return self.__meta_dict
+
+    def get_return_pipe(self):
+        return self.__return_pipe
+
+    def set_result(self, result):
+        self.__result = result
+        if self.__return_pipe:
+            self.__return_pipe.push(self)
+
+    def get_result(self):
+        return self.__result
+
+    def set_data(self, data):
+        self.__data = data
+
+    def get_data(self):
+        return self.__data
+
+

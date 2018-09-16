@@ -1,6 +1,5 @@
 import cv2
 
-from feature_extraction.resnet50_api import ResNet50ExtractorAPI
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
 from obj_tracking.ofist_api.ofist_object_tracking_api import OFISTObjectTrackingAPI

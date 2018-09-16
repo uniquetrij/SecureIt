@@ -2,7 +2,7 @@ from threading import Thread
 
 import cv2
 
-from feature_extraction.resnet50_api import ResNet50ExtractorAPI
+from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from tf_session.tf_session_utils import Pipe
 import numpy as np
 
@@ -32,7 +32,7 @@ class OFISTObjectTrackingAPI:
 
     def __in_pipe_process(self, inference):
         boxes = inference.get_boxes_tlbr(normalized=False)
-        frame = inference.get_image()
+        frame = inference.get_input()
         classes = inference.get_classes()
         bboxes = []
         scores = inference.get_scores()
@@ -41,7 +41,7 @@ class OFISTObjectTrackingAPI:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
         patches = []
         for box in bboxes:
-            patch = self.__extract_image_patch(inference.get_image(), box, self.__image_shape[:2])
+            patch = self.__extract_image_patch(inference.get_input(), box, self.__image_shape[:2])
             if patch is None:
                 print("WARNING: Failed to extract image patch: %s." % str(box))
                 patch = np.random.uniform(0., 255., self.__image_shape).astype(np.uint8)

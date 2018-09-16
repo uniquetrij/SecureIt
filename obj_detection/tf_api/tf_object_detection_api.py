@@ -88,32 +88,27 @@ class TFObjectDetectionAPI:
         else:
             self.__graph_prefix = graph_prefix + '/'
 
-    def __in_pipe_process(self, args_dict):
-        image = args_dict['image'].copy()
+    def __in_pipe_process(self, inference):
+        image = inference.get_input()
         data = np.expand_dims(image, axis=0)
-        try:
-            ret_pipe = args_dict['ret_pipe']
-        except:
-            ret_pipe = None
-        return {'image': image, 'data': data, 'ret_pipe': ret_pipe}
+        inference.set_data(data)
+        return inference
 
-    def __out_pipe_process(self, inference):
-        output_dict, original_img, ret_pipe = inference
-        num_detections = int(output_dict['num_detections'][0])
-        detection_classes = output_dict['detection_classes'][0][:num_detections].astype(np.uint8)
-        detection_boxes = output_dict['detection_boxes'][0][:num_detections]
-        detection_scores = output_dict['detection_scores'][0][:num_detections]
-        if 'detection_masks' in output_dict:
-            detection_masks = output_dict['detection_masks'][0][:num_detections]
+    def __out_pipe_process(self, result):
+        result, inference = result
+        num_detections = int(result['num_detections'][0])
+        detection_classes = result['detection_classes'][0][:num_detections].astype(np.uint8)
+        detection_boxes = result['detection_boxes'][0][:num_detections]
+        detection_scores = result['detection_scores'][0][:num_detections]
+        if 'detection_masks' in result:
+            detection_masks = result['detection_masks'][0][:num_detections]
         else:
             detection_masks = None
 
-        inference = Inference(original_img, num_detections, detection_boxes, detection_classes, detection_scores,
-                              masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
-                              anotator=self.annotate)
-
-        if ret_pipe:
-            ret_pipe.push(inference)
+        result = Inference(inference.get_input(), num_detections, detection_boxes, detection_classes, detection_scores,
+                                        masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
+                                        anotator=self.annotate)
+        inference.set_result(result)
         return inference
 
     def get_in_pipe(self):
@@ -171,18 +166,16 @@ class TFObjectDetectionAPI:
                 self.__out_pipe.close()
                 return
 
-            ret, pull = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
                 self.__session_runner.get_in_pipe().push(
-                    (self.__job, {'data': pull['data'], 'out_pipe': self.__out_pipe, 'image': pull['image'],
-                                  'ret_pipe': pull['ret_pipe']}))
+                    (self.__job, inference))
             else:
                 self.__in_pipe.wait()
 
-    def __job(self, args_dict):
-        data = args_dict['data']
-        output_dict = self.__tf_sess.run(self.__tensor_dict, feed_dict={self.__image_tensor: data})
-        args_dict['out_pipe'].push((output_dict, args_dict['image'], args_dict['ret_pipe']))
+    def __job(self, inference):
+        self.__out_pipe.push(
+            (self.__tf_sess.run(self.__tensor_dict, feed_dict={self.__image_tensor: inference.get_data()}), inference))
 
     def get_category(self, category):
         return self.__category_dict[category]

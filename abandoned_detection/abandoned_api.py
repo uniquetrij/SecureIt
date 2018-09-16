@@ -365,15 +365,15 @@ if __name__ == '__main__':
             print(len(bags))
             if flag:
                 prev_image = np.copy(cur_image)
-                cur_image = np.copy(inference.get_image())
+                cur_image = np.copy(inference.get_input())
 
             else:
-                cur_image = np.copy(inference.get_image())
+                cur_image = np.copy(inference.get_input())
                 flag = True
 
             # print(persons[0])
 
-            frame = draw_obj(inference.get_image(), prev_image, persons, bags, flag)
+            frame = draw_obj(inference.get_input(), prev_image, persons, bags, flag)
             cv2.imshow("", frame)
             cv2.waitKey(1)
         else:

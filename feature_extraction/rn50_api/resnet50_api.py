@@ -29,18 +29,20 @@ class ResNet50ExtractorAPI:
         preprocessed = resnet50.preprocess_input(preprocessed)
         return preprocessed
 
-    def __in_pipe_process(self, images):
+    def __in_pipe_process(self, inference):
+        images = inference.get_input()
         if type(images) is not list:
             images = [images]
-        originals = []
-        preprocessed = []
+        data = []
         for img in images:
-            original = img.copy()
-            originals.append(original)
-            preprocessed.append(self.__preprocess(original))
-        return (originals, preprocessed)
+            data.append(self.__preprocess(img))
+        data = np.array(data)
+        inference.set_data(data)
+        return inference
 
-    def __out_pipe_process(self, inference):
+    def __out_pipe_process(self, result):
+        result, inference = result
+        inference.set_result(result)
         return inference
 
     def get_in_pipe(self):
@@ -69,14 +71,12 @@ class ResNet50ExtractorAPI:
                 self.__out_pipe.close()
                 return
 
-            ret, data = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.__session_runner.add_job(self.__job, data)
-
+                self.__session_runner.get_in_pipe().push((self.__job, inference))
             else:
                 self.__in_pipe.wait()
 
-    def __job(self, data):
-        f_vecs = self.__model.predict(np.array(data[1]))
-        print(f_vecs.shape)
-        self.__out_pipe.push((data[0], f_vecs))
+    def __job(self, inference):
+
+        self.__out_pipe.push((self.__model.predict(inference.get_data()), inference))

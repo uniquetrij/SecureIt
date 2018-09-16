@@ -121,7 +121,7 @@ def test():
         if not ret:
             continue
         cv2.imwrite("/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02/img1/" + (
-            str(count).zfill(5)) + ".jpg", inference.get_image())
+            str(count).zfill(5)) + ".jpg", inference.get_input())
         count += 1
         # print(count)
 
@@ -147,7 +147,7 @@ def test():
             print("error")
             continue
 
-        features = create_box_encoder()(inference.get_image(), boxes.copy())
+        features = create_box_encoder()(inference.get_input(), boxes.copy())
         detection_mat = [np.r_[(count + 1, -1, r, -1, -1, -1, f)] for r, f in zip(rows, features)]
 
         min_confidence = 0.3
@@ -172,7 +172,7 @@ def test():
         # Update tracker.
         tracker.predict()
         tracker.update(detections)
-        image = inference.get_image().copy()
+        image = inference.get_input().copy()
         _color = (255, 0, 0)
         thickness = 1
         for track in tracker.tracks:

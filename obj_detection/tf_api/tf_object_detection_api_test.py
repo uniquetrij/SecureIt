@@ -7,7 +7,7 @@ from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, \
     PRETRAINED_faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28
 from tf_session.tf_session_runner import SessionRunner
-from tf_session.tf_session_utils import Pipe
+from tf_session.tf_session_utils import Pipe, Inference
 
 cap = cv2.VideoCapture(-1)
 # cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
@@ -33,12 +33,12 @@ if __name__ == '__main__':
         ret, image = cap.read()
         if not ret:
             continue
-        ip.push({'image':image.copy(), 'ret_pipe':ret_pipe})
+        ip.push(Inference(image,ret_pipe,{}))
 
         ret, inference = ret_pipe.pull()
         if ret:
-            print(inference.get_classes())
-            cv2.imshow("", inference.annotate())
+            # print(inference.get_classes())
+            cv2.imshow("", inference.get_result().anotate())
             cv2.waitKey(1)
         else:
             ret_pipe.wait()
