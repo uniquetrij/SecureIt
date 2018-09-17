@@ -18,7 +18,7 @@ from keras.layers import Input
 from PIL import Image, ImageFont, ImageDraw
 import tensorflow as tf
 
-from obj_detection.obj_detection_utils import Inference
+from obj_detection.obj_detection_utils import InferedDetections
 from obj_detection.yolo_api.yolo_keras.model import yolo_eval, yolo_body, tiny_yolo_body
 from obj_detection.yolo_api.yolo_keras.utils import letterbox_image
 import os
@@ -93,8 +93,8 @@ class YOLOObjectDetectionAPI():
 
     def __out_pipe_process(self, inference):
         output_dict, original_img, ret_pipe = inference
-        inference = Inference(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2], masks=None,
-                         is_normalized=False, get_category_fnc=self.get_category, anotator=self.annotate)
+        inference = InferedDetections(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2], masks=None,
+                                      is_normalized=False, get_category_fnc=self.get_category, anotator=self.annotate)
         if ret_pipe:
             ret_pipe.push(inference)
         return inference

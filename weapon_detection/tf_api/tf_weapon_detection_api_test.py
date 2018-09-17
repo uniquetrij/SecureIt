@@ -9,7 +9,7 @@ from tf_session.tf_session_utils import Pipe, Inference
 from weapon_detection.tf_api.tf_weapon_detection_api import TFWeaponDetectionAPI
 
 #cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture("/home/developer/Downloads/Jimmy Johns Robbery.mp4")
+cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/weapon_detection/tf_api/data/video4.mp4")
 if __name__ == '__main__':
     session_runner = SessionRunner(threading=True)
     while True:

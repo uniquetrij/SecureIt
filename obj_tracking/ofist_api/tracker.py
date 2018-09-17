@@ -16,7 +16,7 @@ class Tracker(object):
     def __init__(self, bbox, features, hit_streak_threshold = 10):
         self.__id = self.__get_next_id()
         self.__bbox = bbox
-        # self.__features_fixed = [features]
+        self.__features_fixed = [features]
         self.__features_update = [features]
         self.__hit_streak = 0
         self.__time_since_update = 0
@@ -38,10 +38,10 @@ class Tracker(object):
         return self.__id
 
     def update(self, bbox, f_vec):
-        # if len(self.__features_fixed) < 10:
-        #     self.__features_fixed.append(f_vec)
+        if len(self.__features_fixed) < 50:
+            self.__features_fixed.append(f_vec)
         self.__features_update.append(f_vec)
-        if len(self.__features_update) > 1:
+        if len(self.__features_update) > 50:
             self.__features_update.pop(0)
         self.__time_since_update = 0
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)

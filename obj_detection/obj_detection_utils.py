@@ -1,6 +1,6 @@
 import numpy as np
 
-class Inference:
+class InferedDetections:
     def __init__(self, image, num_detections, boxes, classes, scores, masks = None, is_normalized = True, get_category_fnc=None, anotator=None):
         self.num_detections = int(np.squeeze(num_detections))
         self.image = image

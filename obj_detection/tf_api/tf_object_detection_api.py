@@ -8,7 +8,7 @@ import numpy as np
 import six.moves.urllib as urllib
 import tensorflow as tf
 
-from obj_detection.obj_detection_utils import Inference
+from obj_detection.obj_detection_utils import InferedDetections
 from obj_detection.tf_api.object_detection.utils import label_map_util
 from obj_detection.tf_api.object_detection.utils import ops as utils_ops
 from obj_detection.tf_api.object_detection.utils import visualization_utils as vis_util
@@ -105,9 +105,9 @@ class TFObjectDetectionAPI:
         else:
             detection_masks = None
 
-        result = Inference(inference.get_input(), num_detections, detection_boxes, detection_classes, detection_scores,
-                                        masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
-                                        anotator=self.annotate)
+        result = InferedDetections(inference.get_input(), num_detections, detection_boxes, detection_classes, detection_scores,
+                                   masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
+                                   anotator=self.annotate)
         inference.set_result(result)
         return inference
 

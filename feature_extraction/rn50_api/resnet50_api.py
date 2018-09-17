@@ -12,7 +12,7 @@ class ResNet50ExtractorAPI:
 
     def __init__(self, graph_prefix='', flush_pipe_on_read=False):
         self.__flush_pipe_on_read = flush_pipe_on_read
-
+        self.__feature_dim = (2048)
         self.__image_shape = (224, 224, 3)
 
         self.__thread = None
@@ -78,5 +78,7 @@ class ResNet50ExtractorAPI:
                 self.__in_pipe.wait()
 
     def __job(self, inference):
-
-        self.__out_pipe.push((self.__model.predict(inference.get_data()), inference))
+        try:
+            self.__out_pipe.push((self.__model.predict(inference.get_data()), inference))
+        except:
+            self.__out_pipe.push((np.zeros((0, self.__feature_dim), np.float32), inference))
