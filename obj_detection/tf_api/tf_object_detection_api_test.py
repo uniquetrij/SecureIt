@@ -29,7 +29,7 @@ def read_video():
         ret, image = cap.read()
         if not ret:
             continue
-        detector_ip.push(Inference(image.copy()))
+        detector_ip.push(Inference(cv2.flip(image.copy(),1)))
 
 Thread(target=read_video).start()
 while True:

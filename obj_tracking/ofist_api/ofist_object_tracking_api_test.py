@@ -12,7 +12,7 @@ from tf_session.tf_session_utils import Inference
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture('/home/developer/Downloads/video1.avi')
 while True:
     ret, image = cap.read()
     if ret:

@@ -39,7 +39,7 @@ class OFISTObjectTrackingAPI:
         bboxes = []
         scores = i_dets.get_scores()
         for i in range(len(classes)):
-            if classes[i] == i_dets.get_category('person') and scores[i] > .5:
+            if classes[i] == i_dets.get_category('person') and scores[i] > .75:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
         patches = []
         for box in bboxes:
