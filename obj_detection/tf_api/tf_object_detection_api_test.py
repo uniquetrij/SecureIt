@@ -7,8 +7,8 @@ from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
-cap = cv2.VideoCapture(-1)
-# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/People Counting Demonstration.mp4")
+# cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture('/home/developer/Downloads/video1.avi')
 
 session_runner = SessionRunner()
 while True:

@@ -40,9 +40,9 @@ class Tracker(object):
     def update(self, bbox, f_vec):
         if len(self.__features_fixed) < 50:
             self.__features_fixed.append(f_vec)
-        self.__features_update.append(f_vec)
-        if len(self.__features_update) > 50:
-            self.__features_update.pop(0)
+        # self.__features_update.append(f_vec)
+        # if len(self.__features_update) > 50:
+        #     self.__features_update.pop(0)
         self.__time_since_update = 0
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
 
@@ -83,7 +83,7 @@ class Tracker(object):
         for t, trk in enumerate(trackers):
             if (t not in matched_indices[:, 1]):
                 unmatched_trackers.append(t)
-                trk.__hit_streak = max(0, trk.__hit_streak-1)
+                trk.__hit_streak = 0#max(0, trk.__hit_streak-1)
                 trk.__time_since_update += 1
 
         # filter out matched with low IOU

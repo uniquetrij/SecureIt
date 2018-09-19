@@ -59,13 +59,17 @@ class OFISTObjectTrackingAPI:
         bboxes = inference.get_meta_dict()['bboxes']
         self.frame_count = min(self.frame_count + 1, 1000)
 
+        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers)
         if bboxes:
-            matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers)
+            print("#######################################################")
+            print("Trackers updated:  ", len(matched))
+            print("Tracks getting updated: ")
 
             # update matched trackers with assigned detections
             for t, trk in enumerate(self.trackers):
                 if (t not in unmatched_trks):
                     d = matched[np.where(matched[:, 1] == t)[0], 0][0]
+                    print(trk.get_id())
                     trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
 
             # create and initialise new trackers for unmatched detections
@@ -77,13 +81,14 @@ class OFISTObjectTrackingAPI:
         ret = []
         for trk in reversed(self.trackers):
             d = trk.get_bbox()
-            if (trk.get_hit_streak() >= self.min_hits or self.frame_count <= self.min_hits):
+            if (trk.get_hit_streak() >= self.min_hits ): # or self.frame_count <= self.min_hits):
                 ret.append(np.concatenate((d, [trk.get_id()])).reshape(1, -1))  # +1 as MOT benchmark requires positive
             i -= 1
             # remove dead tracklet
             if (trk.get_time_since_update() > self.max_age):
                 self.trackers.pop(i)
 
+        print("Sent trackers: ", len(ret))
         if (len(ret) > 0):
             inference.set_result(np.concatenate(ret))
         else:

@@ -12,7 +12,8 @@ from tf_session.tf_session_utils import Inference
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture('/home/developer/Downloads/video1.avi')
+# cap = cv2.VideoCapture('/home/developer/Downloads/video1.avi')
+cap = cv2.VideoCapture(-1)
 while True:
     ret, image = cap.read()
     if ret:
@@ -79,6 +80,7 @@ while True:
         if ret:
             trackers = inference.get_result()
             frame = inference.get_input().get_image()
+            print("Length of trackers to display: ", len(trackers))
             for d in trackers:
                 cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[2]), int(d[3])), (255, 0, 0), 2)
                 cv2.putText(frame, str(int(d[4])), (int(d[0]) + 5, int(d[1]) + 15), cv2.FONT_HERSHEY_COMPLEX, 0.75, (0, 0, 255))
