@@ -38,7 +38,7 @@ class Tracker(object):
         return self.__id
 
     def update(self, bbox, f_vec):
-        if len(self.__features_fixed) < 50:
+        if len(self.__features_fixed) < 10:
             self.__features_fixed.append(f_vec)
         # self.__features_update.append(f_vec)
         # if len(self.__features_update) > 50:
@@ -53,7 +53,7 @@ class Tracker(object):
         return self.__hit_streak
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, similarity_threshold=0.3):
+    def associate_detections_to_trackers(f_vecs, trackers, similarity_threshold=0.6):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -72,9 +72,6 @@ class Tracker(object):
 
         matched_indices = linear_assignment(-similarity_matrix)
 
-        # print(type(matched_indices))
-        # print(matched_indices)
-
         unmatched_detections = []
         for d, det in enumerate(f_vecs):
             if (d not in matched_indices[:, 0]):
@@ -83,16 +80,18 @@ class Tracker(object):
         for t, trk in enumerate(trackers):
             if (t not in matched_indices[:, 1]):
                 unmatched_trackers.append(t)
-                trk.__hit_streak = 0#max(0, trk.__hit_streak-1)
+                trk.__hit_streak = max(0, trk.__hit_streak-1)
                 trk.__time_since_update += 1
 
         # filter out matched with low IOU
         matches = []
         for m in matched_indices:
             if (similarity_matrix[m[0], m[1]] < similarity_threshold):
+                print(similarity_matrix[m[0], m[1]])
                 unmatched_detections.append(m[0])
                 unmatched_trackers.append(m[1])
             else:
+
                 matches.append(m.reshape(1, 2))
         if (len(matches) == 0):
             matches = np.empty((0, 2), dtype=int)
@@ -109,8 +108,6 @@ class Tracker(object):
             b = f_vec
             a = np.expand_dims(a, axis=0)
             b = np.expand_dims(b, axis=0)
-            # print(a.shape)
-            # print(b.shape)
             a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
             b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
             maximum += np.dot(a, b.T)

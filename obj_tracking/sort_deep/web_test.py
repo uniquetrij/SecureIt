@@ -27,8 +27,7 @@ import ffmpeg
 
 #
 #
-image_folder = '/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02/img1/'
-video_name = 'video.mp4'
+image_folder = '/home/developer/Desktop/folder/'
 
 import cv2
 import os
@@ -43,7 +42,7 @@ print(height, width, layers)
 
 # video = cv2.VideoWriter_fourcc(video_name, -1, 1, (width,height))
 fourcc = cv2.VideoWriter_fourcc(*'MPEG')
-video = cv2.VideoWriter('/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/MOT16/train/MOT16-02/test.mp4', fourcc, 25, (width, height))
+video = cv2.VideoWriter('/home/developer/Desktop/folder/test.mp4', fourcc, 25, (width, height))
 
 images.sort()
 

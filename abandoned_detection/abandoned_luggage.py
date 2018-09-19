@@ -148,14 +148,14 @@ def update_owner(first_60_owner, last_60_owner, bag_indices, bag, persons, cur_i
         else:
             first_60_owner[len(bag_indices)].append([bag, persons, cur_image])
     else:
-        if  120 <= (len(bag_indices)) < 180:
+        if  120 <= (len(bag_indices)) < 240:
             
-            if last_60_owner[(len(bag_indices))%60] == 0:
-                last_60_owner[(len(bag_indices))%60] = [[bag, persons, cur_image]]
+            if last_60_owner[(len(bag_indices))%120] == 0:
+                last_60_owner[(len(bag_indices))%120] = [[bag, persons, cur_image]]
             else:
-                last_60_owner[(len(bag_indices))%60].append([bag, persons, cur_image])
+                last_60_owner[(len(bag_indices))%120].append([bag, persons, cur_image])
         else:
-            idx = len(bag_indices)%60
+            idx = len(bag_indices)%120
             temp_idx = -1
             max_iou = 0
             if last_60_owner[idx] != 0:
@@ -183,12 +183,10 @@ from collections import deque
 prev_dq_bags = deque(maxlen=450)
 prev_dq_persons = deque(maxlen=450)
 first_60_owner = deque(maxlen=120)
-last_60_owner = deque(maxlen=60)
+last_60_owner = deque(maxlen=120)
 
 for i in range(0,120):
     first_60_owner.append(0)
-
-for i in range(0,60):
     last_60_owner.append(0)
 
 def draw_obj(cur_image, prev_image, bags, persons):
@@ -441,12 +439,14 @@ if __name__ == '__main__':
     height = image0.shape[0]
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('/home/developer/PycharmProjects/SecureIt/data/videos/abandoned_detection/abandoned_luggage1.avi', fourcc, 20.0, (width, height))
+    out = cv2.VideoWriter('/home/developer/PycharmProjects/SecureIt/data/videos/abandoned_detection/abandoned_luggage_sol1.avi', fourcc, 30.0, (width, height))
     def readvideo():
         while True:
             re, image = cap0.read()
             if re:
                 ip0.push(Inference(image.copy()))
+            else:
+                break
             time.sleep(0.025)
 
 
@@ -493,6 +493,7 @@ if __name__ == '__main__':
 
         else:
             op0.wait()
+
     cap0.release()
     out.release()
     cv2.destroyAllWindows()

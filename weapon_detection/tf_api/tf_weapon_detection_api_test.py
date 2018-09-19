@@ -28,6 +28,7 @@ if __name__ == '__main__':
     ret_pipe = Pipe()
 
     # for i in range(1000):
+    count = 0
     while True:
         ret, image = cap.read()
         if not ret:
@@ -37,8 +38,11 @@ if __name__ == '__main__':
         ret, inference = ret_pipe.pull()
         if ret:
             # print(inference.get_classes())
-            cv2.imshow("", inference.get_result().anotate())
+            frame = inference.get_result().anotate()
+            cv2.imshow("", frame )
             cv2.waitKey(1)
+            cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
+            count += 1
         else:
             ret_pipe.wait()
 
