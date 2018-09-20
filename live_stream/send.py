@@ -23,7 +23,7 @@ host = "34.208.106.39"
 # host = 'localhost'
 port = 5005
 addr = (host, port)
-buf = 1024
+buf = 1024*1024
 
 
 def sendFile(fName):

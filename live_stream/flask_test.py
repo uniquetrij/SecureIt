@@ -30,12 +30,12 @@ images = []
 from socket import *
 import cv2
 
-host = "34.208.106.39"
-# host = 'localhost'
+# host = "34.208.106.39"
+host = 'localhost'
 port = 5005
 buf = 1024
 addr = (host, port)
-fName = 'img.jpg'
+fName = 'img_1.jpg'
 timeOut = 0.05
 
 # cap = cv2.VideoCapture(-1)
@@ -50,7 +50,7 @@ def foo():
         s = socket(AF_INET, SOCK_DGRAM)
         s.bind(addr)
 
-        f = open("img_1.jpg", 'wb')
+        f = open(fName, 'wb')
 
         data, address = s.recvfrom(buf)
 

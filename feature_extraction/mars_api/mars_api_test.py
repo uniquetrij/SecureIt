@@ -35,6 +35,7 @@ if __name__ == '__main__':
     ret_pipe = Pipe()
 
     # for i in range(1000):
+
     i = 0
     while True:
         ret, image = cap.read()
@@ -44,7 +45,7 @@ if __name__ == '__main__':
 
         ret, feature_inference = ret_pipe.pull()
         if ret:
-            # print(feature_inference.get_result().shape)
+            print(feature_inference.get_result().shape)
         else:
             ret_pipe.wait()
 

@@ -65,14 +65,9 @@ class YOLOObjectDetectionAPI():
         self.__tf_sess = K.get_session()
         self.boxes, self.scores, self.classes = self.generate()
 
-    def __in_pipe_process(self, args_dict):
+    def __in_pipe_process(self, inference):
 
-        image = args_dict['image'].copy()
-        try:
-            ret_pipe = args_dict['ret_pipe']
-        except:
-            ret_pipe = None
-
+        image = inference.get_input()
         pil_image = Image.fromarray(image)
 
         if self.model_image_size != (None, None):
@@ -88,15 +83,16 @@ class YOLOObjectDetectionAPI():
         data /= 255.
         data = np.expand_dims(data, 0)  # Add batch dimension.
 
-        return {'image': image, 'data': data, 'ret_pipe': ret_pipe, 'pil_image':pil_image}
+        inference.set_data(data)
+        inference.get_meta_dict()['PIL'] = pil_image
+        return inference
         # return image
 
-    def __out_pipe_process(self, inference):
-        output_dict, original_img, ret_pipe = inference
-        inference = InferedDetections(original_img, len(output_dict[0]), output_dict[0], output_dict[1], output_dict[2], masks=None,
+    def __out_pipe_process(self, result):
+        (out_boxes, out_classes, out_scores), inference = result
+        result = InferedDetections(inference.get_input(), len(out_boxes), out_boxes, out_classes, out_scores, masks=None,
                                       is_normalized=False, get_category_fnc=self.get_category, anotator=self.annotate)
-        if ret_pipe:
-            ret_pipe.push(inference)
+        inference.set_result(result)
         return inference
 
     def get_in_pipe(self):
@@ -215,18 +211,17 @@ class YOLOObjectDetectionAPI():
                 self.__out_pipe.close()
                 return
 
-            ret, pull = self.__in_pipe.pull(self.__flush_pipe_on_read)
+            ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
                 self.__session_runner.get_in_pipe().push(
-                    (self.__job, {'data': pull['data'], 'out_pipe': self.__out_pipe, 'image': pull['image'],
-                                  'ret_pipe': pull['ret_pipe'], 'pil_image':pull['pil_image']}))
+                    (self.__job, inference))
             else:
                 self.__in_pipe.wait()
 
-    def __job(self, args_dict):
-        data = args_dict['data']
-        pil_image = args_dict['pil_image']
-        image = args_dict['image']
+    def __job(self, inference):
+        data = inference.get_data()
+        pil_image = inference.get_meta_dict()['PIL']
+        # image = inference.get_input()
         out_boxes, out_scores, out_classes = self.__tf_sess.run(
             [self.boxes, self.scores, self.classes],
             feed_dict={
@@ -234,7 +229,7 @@ class YOLOObjectDetectionAPI():
                 self.input_image_shape: [pil_image.size[1], pil_image.size[0]],
             })
 
-        self.__out_pipe.push(((out_boxes, out_classes, out_scores), args_dict['image'], args_dict['ret_pipe']))
+        self.__out_pipe.push(((out_boxes, out_classes, out_scores), inference))
 
     def close_session(self):
         self.__tf_sess.close()
@@ -242,7 +237,7 @@ class YOLOObjectDetectionAPI():
     @staticmethod
     def annotate(inference):
         annotated = inference.image.copy()
-        image = Image.fromarray(inference.get_input())
+        image = Image.fromarray(inference.get_image())
         font = ImageFont.truetype(font='arial.ttf',
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
