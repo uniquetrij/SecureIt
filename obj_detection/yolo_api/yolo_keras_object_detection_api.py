@@ -90,6 +90,7 @@ class YOLOObjectDetectionAPI():
 
     def __out_pipe_process(self, result):
         (out_boxes, out_classes, out_scores), inference = result
+        out_boxes = np.array([[0 if y < 0 else y for y in x] for x in out_boxes])
         result = InferedDetections(inference.get_input(), len(out_boxes), out_boxes, out_classes, out_scores, masks=None,
                                       is_normalized=False, get_category_fnc=self.get_category, anotator=self.annotate)
         inference.set_result(result)

@@ -53,7 +53,7 @@ class Tracker(object):
         return self.__hit_streak
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, similarity_threshold=0.6):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, similarity_threshold=0.6):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -64,13 +64,25 @@ class Tracker(object):
             return np.empty((0, 2), dtype=int), np.arange(len(f_vecs)), np.empty((0, 4), dtype=int)
 
         similarity_matrix = np.zeros((len(f_vecs), len(trackers)), dtype=np.float32)
+
+
         for d, det in enumerate(f_vecs):
             for t, trk in enumerate(trackers):
+                # x1, y1 = bboxes[d][0], bboxes[d][1]
+                # x2, y2 = trk.get_bbox()[0], trk.get_bbox()[1]
+                # print((abs(float(y2-y1)**2 - float(x2-x1)**2)**0.5))
+                '''100 is probably a very low theshold. Also, We havent done anything for exit frame mechanism. Other than that it seem to work fine'''
+                # 100 coz anything lower doesnt seem to detect my walking we might even have to increase it but then worry about its reaction in multi person environment
+                # if ((abs(float(y2-y1)**2 - float(x2-x1)**2)**0.5)) < 25:
+                #     print((abs(float(y2 - y1) ** 2 - float(x2 - x1) ** 2) ** 0.5))
+                #     print(d,t)
                 similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
         '''The linear assignment module tries to minimise the total assignment cost.
         In our case we pass -iou_matrix as we want to maximise the total IOU between track predictions and the frame detection.'''
 
         matched_indices = linear_assignment(-similarity_matrix)
+
+        print(matched_indices)
 
         unmatched_detections = []
         for d, det in enumerate(f_vecs):
@@ -110,5 +122,5 @@ class Tracker(object):
             b = np.expand_dims(b, axis=0)
             a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
             b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
-            maximum += np.dot(a, b.T)
-        return maximum/len(lst)
+            maximum = max(maximum, np.dot(a, b.T)[0][0])
+        return maximum

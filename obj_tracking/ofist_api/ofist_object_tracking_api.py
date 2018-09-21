@@ -4,7 +4,7 @@ import cv2
 
 from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
-from obj_tracking.ofist_api.tracker import Tracker
+from obj_tracking.ofist_api.tracker_knn import KNNTracker
 from tf_session.tf_session_utils import Pipe, Inference
 import numpy as np
 
@@ -18,7 +18,6 @@ class OFISTObjectTrackingAPI:
         self.frame_count = 0
         self.__bg_frame = None
         self.__bg_gray = None
-
 
         self.__flush_pipe_on_read = flush_pipe_on_read
 
@@ -36,15 +35,27 @@ class OFISTObjectTrackingAPI:
         sx, sy, ex, ey = np.array(bbox).astype(np.int)
 
         # dx = ex-sx
-        # dx = int(.125*dx)
-        #
+        # dx = int(.25*dx)
+
         # dy = ey-sy
-        # dy = int(.25*dy)
+        # dy = int(.6*dy)
+
         dx = 0
         dy = 0
 
-        image = image[sy+dy:ey-dy, sx+dx:ex-dx]
+        image = image[sy:ey - dy, sx + dx:ex - dx]
         image = cv2.resize(image, tuple(patch_shape[::-1]))
+
+        # img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+        # img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
+        # image = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
+
+        image[0] = cv2.equalizeHist(image[0])
+        image[1] = cv2.equalizeHist(image[1])
+        image[2] = cv2.equalizeHist(image[2])
+
+
+
         return image
 
     def __in_pipe_process(self, inference):
@@ -104,26 +115,33 @@ class OFISTObjectTrackingAPI:
         bboxes = inference.get_meta_dict()['bboxes']
         self.frame_count = min(self.frame_count + 1, 1000)
 
-        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers, similarity_threshold=0.25)
+        matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes,
+                                                                                           distance_threshold=0.575)
         if bboxes:
 
+            # # update matched trackers with assigned detections
+            # for t, trk in enumerate(self.trackers):
+            #     if (t not in unmatched_trks):
+            #         d = matched[np.where(matched[:, 1] == t)[0], 0][0]
+            #         trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
+
             # update matched trackers with assigned detections
-            for t, trk in enumerate(self.trackers):
-                if (t not in unmatched_trks):
-                    d = matched[np.where(matched[:, 1] == t)[0], 0][0]
+            for trk in self.trackers:
+                if (trk.get_id() not in unmatched_trks):
+                    d = matched[np.where(matched[:, 1] == trk.get_id())[0], 0][0]
                     trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = Tracker(bboxes[i], f_vecs[i])
+                trk = KNNTracker(bboxes[i], f_vecs[i])
                 self.trackers.append(trk)
 
         i = len(self.trackers)
         ret = []
         for trk in reversed(self.trackers):
             d = trk.get_bbox()
-            if (trk.get_hit_streak() >= self.min_hits ): # or self.frame_count <= self.min_hits):
-                ret.append(np.concatenate((d, [trk.get_id()])).reshape(1, -1))  # +1 as MOT benchmark requires positive
+            if (trk.get_hit_streak() >= self.min_hits):  # or self.frame_count <= self.min_hits):
+                ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1, -1))  # +1 as MOT benchmark requires positive
             i -= 1
             # remove dead tracklet
             if (trk.get_time_since_update() > self.max_age):
@@ -143,6 +161,7 @@ class OFISTObjectTrackingAPI:
 
     def use_session_runner(self, session_runner):
         self.__session_runner = session_runner
+        # self.__encoder = ResNet50ExtractorAPI("", True)
         self.__encoder = MarsExtractorAPI(flush_pipe_on_read=True)
         self.__encoder.use_session_runner(session_runner)
         self.__enc_in_pipe = self.__encoder.get_in_pipe()
