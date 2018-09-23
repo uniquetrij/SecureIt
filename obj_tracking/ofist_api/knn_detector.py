@@ -1,5 +1,7 @@
+from operator import itemgetter
+
 import numpy as np
-from collections import Counter
+from collections import defaultdict
 
 
 class DistanceMetric:
@@ -10,6 +12,7 @@ class DistanceMetric:
     @staticmethod
     def euclidean_distance(x, y):
         return np.sqrt(np.sum((x - y) ** 2))
+
 
 class KnnDetector:
     def __init__(self):
@@ -33,36 +36,75 @@ class KnnDetector:
         self.__D, self.__Z = KnnDetector.sort_list(self.__D, self.__Y)
         return self
 
-    def get_nearest(self, k=None):
-        return self.__Z[:k], self.__D[:k]
+    def obtain(self, k=5, n=None):
+        Z, D = self.__Z[:k], self.__D[:k]
+        dict = {}
+        for i in range(len(Z)):
+            if Z[i] in dict.keys():
+                dict[Z[i]][0] += 1
+                dict[Z[i]][1] += D[i]
+            else:
+                dict[Z[i]] = [1, D[i]]
+
+        for i in range(len(dict)):
+            dict[Z[i]][1] /= dict[Z[i]][0]
+        if n is not None:
+
+            if n >= 0:
+                while n > 0:
+                    del dict[max(dict.items(), key=itemgetter(1))[0]]
+                    n -= 1
+                ret =  max(dict.items(), key=itemgetter(n))
+            if n < 0:
+                while n < -1:
+                    del dict[min(dict.items(), key=itemgetter(1))[0]]
+                    n += 1
+                ret = tuple(min(dict.items(), key=itemgetter(n)))
+            return (ret[0], ret[1][0], ret[1][1])
+        return dict
 
     @staticmethod
     def sort_list(sort_by_values, list_to_sort):
         return zip(*sorted(zip(sort_by_values, list_to_sort)))
 
+    @staticmethod
+    def get_best_count(knn):
+        id, distance = knn
+        dict = {}
+        for i in range(len(id)):
+            if id[i] in dict.keys():
+                dict[id[i]][0] += 1
+                dict[id[i]][1] += distance[i]
+            else:
+                dict[id[i]] = [1, distance[i]]
+
+        for i in range(len(dict)):
+            dict[id[i]][1] /= dict[id[i]][0]
+        return dict
+
 
 if __name__ == '__main__':
     obj = KnnDetector()
-    X = np.array([[6.6, 6.2, 1],
-                  [9.7, 9.9, 2],
-                  [8.0, 8.3, 2],
-                  [6.3, 5.4, 1],
-                  [1.3, 2.7, 0],
-                  [2.3, 3.1, 0],
-                  [6.6, 6.0, 1],
-                  [6.5, 6.4, 1],
-                  [6.3, 5.8, 1],
-                  [9.5, 9.9, 2],
-                  [8.9, 8.9, 2],
-                  [8.7, 9.5, 2],
-                  [2.5, 3.8, 0],
-                  [2.0, 3.1, 0],
-                  [1.3, 1.3, 0]])
+    X = np.array([[6.6, 6.2, "B"],
+                  [9.7, 9.9, "C"],
+                  [8.0, 8.3, "C"],
+                  [6.3, 5.4, "B"],
+                  [1.3, 2.7, "D"],
+                  [2.3, 3.1, "D"],
+                  [6.6, 6.0, "B"],
+                  [6.5, 6.4, "B"],
+                  [6.3, 5.8, "B"],
+                  [9.5, 9.9, "C"],
+                  [8.9, 8.9, "C"],
+                  [8.7, 9.5, "C"],
+                  [2.5, 3.8, "D"],
+                  [2.0, 3.1, "D"],
+                  [1.3, 1.3, "D"]])
 
     Y = X[:, 2]
-    X = X[:, :2]
-    obj.update(X, Y)
-    obj.observe(X[12], distance_metric=DistanceMetric.cosine_distance)
-    print(obj.get_nearest(7))
-    obj.observe(X[12], distance_metric=DistanceMetric.euclidean_distance)
-    print(obj.get_nearest(7))
+    X = X[:, :2].astype(np.float)
+    print(obj.update(X, Y).observe(X[12], distance_metric=DistanceMetric.euclidean_distance).obtain(7, -1))
+    # print(obj.get_k_nearest(7))
+    # obj.observe(X[12], distance_metric=DistanceMetric.euclidean_distance)
+    # print(obj.get_k_nearest(7))
+    # print(obj.get_best_count(obj.get_k_nearest(7)))

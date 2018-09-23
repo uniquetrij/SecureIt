@@ -1,9 +1,11 @@
 import time
+from collections import defaultdict
+from operator import itemgetter
 
 import numpy as np
 from sklearn.utils.linear_assignment_ import linear_assignment
 
-from obj_tracking.ofist_api.knn_detector import KnnDetector
+from obj_tracking.ofist_api.knn_detector import KnnDetector, DistanceMetric
 
 
 class KNNTracker(object):
@@ -77,14 +79,13 @@ class KNNTracker(object):
 
         X, Y = KNNTracker.prepare_data(trackers)
         predictor = KnnDetector()
-        predictor.fit(X, Y)
 
         matched_indices = []
         unmatched_detections = []
         for i, f_vec in enumerate(f_vecs):
-            predictor.observe(f_vec, nearest_count=1)
-            id = predictor.get_best_class()
-            distance = predictor.get_best_distance()
+            id, count, distance = predictor.update(X, Y).observe(X[12],
+                                                                 distance_metric=DistanceMetric.euclidean_distance).obtain(
+                7, 0)
             if distance < distance_threshold:
                 matched_indices.append([i, id])
             else:
