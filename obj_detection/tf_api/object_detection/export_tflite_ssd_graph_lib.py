@@ -199,7 +199,7 @@ def export_tflite_graph(pipeline_config, trained_checkpoint_prefix, output_dir,
 
   detection_model = model_builder.build(
       pipeline_config.model, is_training=False)
-  predicted_tensors = detection_model.predict(image, true_image_shapes=None)
+  predicted_tensors = detection_model.observe(image, true_image_shapes=None)
   # The score conversion occurs before the post-processing custom op
   _, score_conversion_fn = post_processing_builder.build(
       pipeline_config.model.ssd.post_processing)

@@ -11,7 +11,7 @@ import numpy as np
 
 class OFISTObjectTrackingAPI:
 
-    def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False):
+    def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False):
         self.max_age = max_age
         self.min_hits = min_hits
         self.trackers = []
@@ -27,6 +27,8 @@ class OFISTObjectTrackingAPI:
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
+
+        self.__use_detection_mask = use_detection_mask
 
     number = 0
 
@@ -88,15 +90,17 @@ class OFISTObjectTrackingAPI:
         # inference.get_meta_dict()['mask'] = mask
         # inference.get_meta_dict()['diff_img']=image
 
-        image = frame
         # blur = cv2.GaussianBlur(image, (5, 5), 0)
         # image = cv2.addWeighted(image, 1.5, image, -0.5, 0)
         # image = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
         for i in range(len(bboxes)):
             box = bboxes[i]
-            # mask = masks[i]
-            # mask = np.stack((mask, mask, mask), axis=2)
-            # image = np.multiply(frame, mask)
+            if self.__use_detection_mask:
+                mask = masks[i]
+                mask = np.stack((mask, mask, mask), axis=2)
+                image = np.multiply(frame, mask)
+            else:
+                image = frame
             patch = self.__extract_image_patch(image, box, self.__image_shape[:2])
             if patch is None:
                 print("WARNING: Failed to extract image patch: %s." % str(box))

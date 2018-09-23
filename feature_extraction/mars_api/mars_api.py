@@ -5,6 +5,8 @@ import numpy as np
 from keras import backend as K
 from keras.applications import resnet50
 import tensorflow as tf
+
+from tf_session.tf_session_runner import SessionRunnable
 from tf_session.tf_session_utils import Pipe
 
 
@@ -13,7 +15,7 @@ class MarsExtractorAPI:
     def __init__(self, graph_prefix='', flush_pipe_on_read=False):
         self.__flush_pipe_on_read = flush_pipe_on_read
 
-        self.__model_path = "/home/developer/PycharmProjects/SecureIt/obj_tracking/sort_deep/resources/networks/mars-small128.pb"
+        self.__model_path = "/home/uniquetrij/PycharmProjects/SecureIt/data/trained/mars-small128.pb"
 
 
         self.__thread = None
@@ -86,7 +88,7 @@ class MarsExtractorAPI:
 
             ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.__session_runner.get_in_pipe().push((self.__job, inference))
+                self.__session_runner.get_in_pipe().push(SessionRunnable(self.__job, inference))
             else:
                 self.__in_pipe.wait()
 

@@ -12,6 +12,7 @@ from obj_detection.obj_detection_utils import InferedDetections
 from obj_detection.tf_api.object_detection.utils import label_map_util
 from obj_detection.tf_api.object_detection.utils import ops as utils_ops
 from obj_detection.tf_api.object_detection.utils import visualization_utils as vis_util
+from tf_session.tf_session_runner import SessionRunnable
 from tf_session.tf_session_utils import Pipe
 
 PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28 = 'faster_rcnn_inception_v2_coco_2018_01_28'
@@ -83,6 +84,8 @@ class TFObjectDetectionAPI:
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
 
+        self.__run_session_on_thread = False
+
         if not graph_prefix:
             self.__graph_prefix = ''
         else:
@@ -116,6 +119,9 @@ class TFObjectDetectionAPI:
 
     def get_out_pipe(self):
         return self.__out_pipe
+
+    def use_threading(self, run_on_thread=True):
+        self.__run_session_on_thread = run_on_thread
 
     def use_session_runner(self, session_runner):
         self.__session_runner = session_runner
@@ -169,7 +175,7 @@ class TFObjectDetectionAPI:
             ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
                 self.__session_runner.get_in_pipe().push(
-                    (self.__job, inference))
+                    SessionRunnable(self.__job, inference, run_on_thread=self.__run_session_on_thread))
             else:
                 self.__in_pipe.wait()
 

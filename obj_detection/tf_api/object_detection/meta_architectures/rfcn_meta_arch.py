@@ -292,7 +292,7 @@ class RFCNMetaArch(faster_rcnn_meta_arch.FasterRCNNMetaArch):
           [box_classifier_features],
           proposal_boxes=proposal_boxes_normalized)
     else:
-      box_predictions = self._rfcn_box_predictor.predict(
+      box_predictions = self._rfcn_box_predictor.observe(
           [box_classifier_features],
           num_predictions_per_location=[1],
           scope=self.second_stage_box_predictor_scope,

@@ -53,7 +53,7 @@ class Tracker:
         This function should be called once every time step, before `update`.
         """
         for track in self.tracks:
-            track.predict(self.kf)
+            track.observe(self.kf)
 
     def update(self, detections):
         """Perform measurement update and track management.

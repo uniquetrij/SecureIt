@@ -777,7 +777,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
           [box_classifier_features],
           prediction_stage=2)
     else:
-      box_predictions = self._mask_rcnn_box_predictor.predict(
+      box_predictions = self._mask_rcnn_box_predictor.observe(
           [box_classifier_features],
           num_predictions_per_location=[1],
           scope=self.second_stage_box_predictor_scope,
@@ -855,7 +855,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
             [curr_box_classifier_features],
             prediction_stage=3)
       else:
-        mask_predictions = self._mask_rcnn_box_predictor.predict(
+        mask_predictions = self._mask_rcnn_box_predictor.observe(
             [curr_box_classifier_features],
             num_predictions_per_location=[1],
             scope=self.second_stage_box_predictor_scope,
@@ -890,7 +890,7 @@ class FasterRCNNMetaArch(model.DetectionModel):
             [curr_box_classifier_features],
             prediction_stage=3)
       else:
-        mask_predictions = self._mask_rcnn_box_predictor.predict(
+        mask_predictions = self._mask_rcnn_box_predictor.observe(
             [curr_box_classifier_features],
             num_predictions_per_location=[1],
             scope=self.second_stage_box_predictor_scope,

@@ -54,7 +54,7 @@ class BoxHeadTest(test_case.TestCase):
         share_box_across_classes=False)
     roi_pooled_features = tf.random_uniform(
         [64, 7, 7, 1024], minval=-10.0, maxval=10.0, dtype=tf.float32)
-    prediction = box_prediction_head.predict(
+    prediction = box_prediction_head.observe(
         roi_pooled_features=roi_pooled_features)
     tf.logging.info(prediction.shape)
     self.assertAllEqual([64, 1, 20, 4], prediction.get_shape().as_list())

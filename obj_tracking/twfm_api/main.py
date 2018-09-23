@@ -17,7 +17,7 @@ model._make_predict_function()
 patch = np.random.uniform(0., 255., (224,224,3)).astype(np.uint8)
 img = np.expand_dims(patch, axis=0)
 img = resnet50.preprocess_input(img)
-out = model.predict(img)
+out = model.observe(img)
 
 session_runner = SessionRunner()
 session_runner.start()

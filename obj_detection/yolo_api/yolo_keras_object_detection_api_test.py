@@ -22,20 +22,17 @@ detection = YOLOObjectDetectionAPI('yolo_api', True)
 detector_ip = detection.get_in_pipe()
 detector_op = detection.get_out_pipe()
 detection.use_session_runner(session_runner)
+detection.use_threading()
 
 session_runner.start()
 detection.run()
 
-def read_video():
-    while True:
-        ret, image = cap.read()
-        if not ret:
-            continue
-        detector_ip.push(Inference(image.copy()))
 
-Thread(target=read_video).start()
-count = 0
 while True:
+    ret, image = cap.read()
+    if not ret:
+        continue
+    detector_ip.push(Inference(image.copy()))
     detector_op.wait()
     ret, inference = detector_op.pull()
     if ret:
@@ -45,7 +42,7 @@ while True:
         cv2.imshow("", i_dets.anotate())
         cv2.waitKey(1)
         # cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
-        count += 1
+
 
 
 # Thread(target=detect_objects).start()

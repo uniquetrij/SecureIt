@@ -40,7 +40,7 @@ class Sort:
     to_del = []
     ret = []
     for t,trk in enumerate(trks):
-      pos = self.trackers[t].predict(img) #for kal!
+      pos = self.trackers[t].observe(img) #for kal!
       #print(pos)
       trk[:] = [pos[0], pos[1], pos[2], pos[3], 0]
       if(np.any(np.isnan(pos))):

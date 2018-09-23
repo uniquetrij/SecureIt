@@ -176,7 +176,7 @@ class FasterRCNNMetaArchTest(
             masks_are_class_agnostic=masks_are_class_agnostic)
         preprocessed_inputs = tf.placeholder(tf.float32, shape=input_shape)
         _, true_image_shapes = model.preprocess(preprocessed_inputs)
-        result_tensor_dict = model.predict(preprocessed_inputs,
+        result_tensor_dict = model.observe(preprocessed_inputs,
                                            true_image_shapes)
         init_op = tf.global_variables_initializer()
       with self.test_session(graph=test_graph) as sess:
@@ -234,7 +234,7 @@ class FasterRCNNMetaArchTest(
       model.provide_groundtruth(groundtruth_boxes_list,
                                 groundtruth_classes_list)
 
-      result_tensor_dict = model.predict(preprocessed_inputs, true_image_shapes)
+      result_tensor_dict = model.observe(preprocessed_inputs, true_image_shapes)
       mask_shape_1 = 1 if masks_are_class_agnostic else model._num_classes
       expected_shapes = {
           'rpn_box_predictor_features': (2, image_size, image_size, 512),

@@ -40,7 +40,7 @@ class ImageEncoder(object):
             img = np.expand_dims(patch, axis=0)
             img = resnet50.preprocess_input(img)
 
-            out[counter] = self.model.predict(img)
+            out[counter] = self.model.observe(img)
             counter+=1
         return out
 

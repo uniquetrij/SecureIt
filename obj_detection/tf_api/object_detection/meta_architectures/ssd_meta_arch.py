@@ -517,7 +517,7 @@ class SSDMetaArch(model.DetectionModel):
                           is_training=(self._is_training and
                                        not self._freeze_batchnorm),
                           updates_collections=batchnorm_updates_collections):
-        prediction_dict = self._box_predictor.predict(
+        prediction_dict = self._box_predictor.observe(
             feature_maps, self._anchor_generator.num_anchors_per_location())
 
     box_encodings = tf.concat(prediction_dict['box_encodings'], axis=1)

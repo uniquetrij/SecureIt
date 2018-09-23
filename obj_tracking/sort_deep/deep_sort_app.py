@@ -179,7 +179,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         detections = [detections[i] for i in indices]
 
         # Update tracker.
-        tracker.predict()
+        tracker.observe()
         tracker.update(detections)
 
         # Update visualization.

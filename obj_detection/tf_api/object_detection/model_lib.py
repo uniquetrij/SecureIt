@@ -245,7 +245,7 @@ def create_model_fn(detection_model_fn, configs, hparams, use_tpu=False):
           groundtruth_is_crowd_list=gt_is_crowd_list)
 
     preprocessed_images = features[fields.InputDataFields.image]
-    prediction_dict = detection_model.predict(
+    prediction_dict = detection_model.observe(
         preprocessed_images, features[fields.InputDataFields.true_image_shape])
     if mode in (tf.estimator.ModeKeys.EVAL, tf.estimator.ModeKeys.PREDICT):
       detections = detection_model.postprocess(

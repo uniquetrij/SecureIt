@@ -24,6 +24,7 @@ from obj_detection.yolo_api.yolo_keras.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 
+from tf_session.tf_session_runner import SessionRunnable
 from tf_session.tf_session_utils import Pipe
 
 
@@ -58,6 +59,11 @@ class YOLOObjectDetectionAPI():
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
+
+        self.__run_session_on_thread = False
+
+    def use_threading(self, run_on_thread=True):
+        self.__run_session_on_thread = run_on_thread
 
     def use_session_runner(self, session_runner):
         self.__session_runner = session_runner
@@ -215,7 +221,7 @@ class YOLOObjectDetectionAPI():
             ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
                 self.__session_runner.get_in_pipe().push(
-                    (self.__job, inference))
+                    SessionRunnable(self.__job, inference, run_on_thread=self.__run_session_on_thread))
             else:
                 self.__in_pipe.wait()
 
@@ -241,7 +247,7 @@ class YOLOObjectDetectionAPI():
         image = Image.fromarray(inference.get_image())
         font = ImageFont.truetype(font='arial.ttf',
                                   size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
-        thickness = (image.size[0] + image.size[1]) // 300
+        thickness = 1#(image.size[0] + image.size[1]) // 300
         for i, c in reversed(list(enumerate(inference.get_classes()))):
             predicted_class = YOLOObjectDetectionAPI.class_names[c]
             box = inference.get_boxes_tlbr(normalized=False)[i]

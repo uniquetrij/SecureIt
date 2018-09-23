@@ -3,7 +3,7 @@ import time
 import numpy as np
 from sklearn.utils.linear_assignment_ import linear_assignment
 
-from obj_tracking.ofist_api.knn_predictor import KNNCosinePredictor
+from obj_tracking.ofist_api.knn_detector import KnnDetector
 
 
 class KNNTracker(object):
@@ -76,13 +76,13 @@ class KNNTracker(object):
         # similarity_matrix = np.zeros((len(f_vecs), len(trackers)), dtype=np.float32)
 
         X, Y = KNNTracker.prepare_data(trackers)
-        predictor = KNNCosinePredictor()
+        predictor = KnnDetector()
         predictor.fit(X, Y)
 
         matched_indices = []
         unmatched_detections = []
         for i, f_vec in enumerate(f_vecs):
-            predictor.predict(f_vec, nearest_count=1)
+            predictor.observe(f_vec, nearest_count=1)
             id = predictor.get_best_class()
             distance = predictor.get_best_distance()
             if distance < distance_threshold:

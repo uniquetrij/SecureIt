@@ -62,7 +62,7 @@ class KalmanBoxTracker(object):
     """
     if((self.kf.x[6]+self.kf.x[2])<=0):
       self.kf.x[6] *= 0.0
-    self.kf.predict()
+    self.kf.observe()
     self.age += 1
     if(self.time_since_update>0):
       self.hit_streak = 0

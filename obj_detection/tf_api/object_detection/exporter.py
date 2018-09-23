@@ -250,7 +250,7 @@ def _get_outputs_from_inputs(input_tensors, detection_model,
                              output_collection_name):
   inputs = tf.to_float(input_tensors)
   preprocessed_inputs, true_image_shapes = detection_model.preprocess(inputs)
-  output_tensors = detection_model.predict(
+  output_tensors = detection_model.observe(
       preprocessed_inputs, true_image_shapes)
   postprocessed_tensors = detection_model.postprocess(
       output_tensors, true_image_shapes)

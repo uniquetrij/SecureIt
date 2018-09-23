@@ -82,7 +82,7 @@ class ImageEncoder(object):
         counter = 0
         for patch in data_x:
             img = np.expand_dims(patch, axis=0)
-            out[counter] = self.model.predict(img)
+            out[counter] = self.model.observe(img)
         # print(out.shape)
         # print(out[0])
         return out

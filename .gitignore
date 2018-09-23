@@ -1,10 +1,14 @@
 .idea/
 __pycache__/
 
+**/trained
 **/pretrained
-**/sort_deep/MOT16
-**/sort_deep/resources
 **/videos
 **/images
-**/trained_models
+**/inputs
+**/outputs
+**/sort_deep/MOT16
+**/sort_deep/resources
+
+
 

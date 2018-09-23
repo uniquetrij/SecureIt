@@ -27,7 +27,7 @@ class ImageEncoder(object):
             # with K.get_session().as_default():
             img = np.expand_dims(patch, axis=0)
             img = resnet50.preprocess_input(img)
-            out[counter] = self.__model.predict(img)
+            out[counter] = self.__model.observe(img)
 
 
             counter+=1

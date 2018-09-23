@@ -197,7 +197,7 @@ def _create_losses(input_queue, create_model_fn, train_config):
                                       groundtruth_classes_list,
                                       groundtruth_masks_list,
                                       groundtruth_keypoints_list)
-  prediction_dict = detection_model.predict(images, true_image_shapes)
+  prediction_dict = detection_model.observe(images, true_image_shapes)
 
   losses_dict = detection_model.loss(prediction_dict, true_image_shapes)
   for loss_tensor in losses_dict.values():

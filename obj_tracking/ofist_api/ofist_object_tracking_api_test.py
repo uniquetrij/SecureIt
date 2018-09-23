@@ -13,7 +13,7 @@ from tf_session.tf_session_utils import Inference
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/videos/abandoned_detection/abandoned_luggage.avi")
+cap = cv2.VideoCapture("/home/uniquetrij/PycharmProjects/SecureIt/obj_tracking/data/videos/video1.avi")
 # cap = cv2.VideoCapture('/home/developer/Downloads/shoe_tracking.mp4')
 # cap = cv2.VideoCapture(0)
 while True:
@@ -26,6 +26,7 @@ detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01
 detector.use_session_runner(session_runner)
 detector_ip = detector.get_in_pipe()
 detector_op = detector.get_out_pipe()
+detector.use_threading()
 detector.run()
 
 tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True)
@@ -35,23 +36,16 @@ trk_op = tracker.get_out_pipe()
 tracker.run()
 
 
-def read_video():
-    while True:
-        ret, image = cap.read()
-        if not ret:
-            continue
-        detector_ip.push(Inference(image.copy()))
-        detector_op.wait()
-        ret, inference = detector_op.pull()
-        if ret:
-            i_dets = inference.get_result()
-            trk_ip.push(Inference(i_dets))
-
-
-Thread(target=read_video).start()
-
-count = 0
 while True:
+    ret, image = cap.read()
+    if not ret:
+        continue
+    detector_ip.push(Inference(image.copy()))
+    detector_op.wait()
+    ret, inference = detector_op.pull()
+    if ret:
+        i_dets = inference.get_result()
+        trk_ip.push(Inference(i_dets))
     trk_op.wait()
     ret, inference = trk_op.pull()
     if ret:
