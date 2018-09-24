@@ -1,21 +1,22 @@
-from threading import Thread
-
 import cv2
 
-from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
-    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, \
-    PRETRAINED_faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28
+from data.obj_detection.videos import path as videos_path
 from obj_detection.yolo_api.yolo_keras_object_detection_api import YOLOObjectDetectionAPI
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
 # cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture('/home/developer/PycharmProjects/SecureIt/data/obj_tracking/videos/inputs/video1.avi')
+cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
 
 session_runner = SessionRunner()
+
+frame_no = 0
 while True:
     ret, image = cap.read()
     if ret:
+        frame_no+=1
+        # break
+    if frame_no == 125:
         break
 
 detection = YOLOObjectDetectionAPI('yolo_api', True)
@@ -42,7 +43,6 @@ while True:
         cv2.imshow("", i_dets.anotate())
         cv2.waitKey(1)
         # cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
-
-
-
+    print(frame_no)
+    frame_no+=1
 # Thread(target=detect_objects).start()

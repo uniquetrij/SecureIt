@@ -1,16 +1,13 @@
-from threading import Thread
-from time import sleep
-
 import cv2
+from data.obj_detection.videos import path as videos_path
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
-    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, \
-    PRETRAINED_faster_rcnn_inception_resnet_v2_atrous_coco_2018_01_28
+    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
 # cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture('/home/developer/PycharmProjects/SecureIt/data/obj_tracking/videos/inputs/video1.avi')
+cap = cv2.VideoCapture(videos_path.get()+'/video1.avi')
 
 session_runner = SessionRunner()
 while True:
@@ -38,15 +35,15 @@ while True:
         i_dets = inference.get_result()
         # print(i_dets.get_masks()[0].shape)
         frame = i_dets.anotate()
-        # cv2.imshow("annotated", i_dets.anotate())
+        cv2.imshow("annotated", i_dets.anotate())
         # cv2.imshow("annotated", i_dets.extract_patch(0))
-        # cv2.waitKey(0)
+        cv2.waitKey(1)
         # person = i_dets.get_category('person')
-        for i in range(i_dets.get_length()):
-            if i_dets.get_classes(i) == 1 and i_dets.get_scores(i) > 0.7:
-                cv2.imwrite("/home/uniquetrij/PycharmProjects/SecureIt/data/obj_tracking/outputs/patches/" + (
-                    str(frame_no).zfill(5)) + (str(i).zfill(2)) + ".jpg", i_dets.extract_patches(i))
-        # print(frame_no)
+        # for i in range(i_dets.get_length()):
+        #     if i_dets.get_classes(i) == 1 and i_dets.get_scores(i) > 0.7:
+        #         cv2.imwrite("/home/uniquetrij/PycharmProjects/SecureIt/data/obj_tracking/outputs/patches/" + (
+        #             str(frame_no).zfill(5)) + (str(i).zfill(2)) + ".jpg", i_dets.extract_patches(i))
+        print(frame_no)
         frame_no += 1
 
 # Thread(target=detect_objects).start()

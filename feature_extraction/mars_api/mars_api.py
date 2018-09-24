@@ -9,13 +9,14 @@ import tensorflow as tf
 from tf_session.tf_session_runner import SessionRunnable
 from tf_session.tf_session_utils import Pipe
 
+from data.feature_extraction.mars_api.pretrained import path as pretrained_path
 
 class MarsExtractorAPI:
 
     def __init__(self, graph_prefix='', flush_pipe_on_read=False):
         self.__flush_pipe_on_read = flush_pipe_on_read
 
-        self.__model_path = "/home/developer/PycharmProjects/SecureIt/data/obj_tracking/trained/mars.pb"
+        self.__model_path = pretrained_path.get()+"/mars-small128.pb"
 
 
         self.__thread = None

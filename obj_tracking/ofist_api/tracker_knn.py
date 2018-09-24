@@ -1,9 +1,4 @@
-import time
-from collections import defaultdict
-from operator import itemgetter
-
 import numpy as np
-from sklearn.utils.linear_assignment_ import linear_assignment
 
 from obj_tracking.ofist_api.knn_detector import KnnDetector, DistanceMetric
 

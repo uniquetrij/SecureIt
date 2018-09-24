@@ -8,6 +8,8 @@ import numpy as np
 import six.moves.urllib as urllib
 import tensorflow as tf
 
+import data.obj_detection.tf_api.data.path as data_path
+import data.obj_detection.tf_api.pretrained.path as pretrained_path
 from obj_detection.obj_detection_utils import InferedDetections
 from obj_detection.tf_api.object_detection.utils import label_map_util
 from obj_detection.tf_api.object_detection.utils import ops as utils_ops
@@ -29,7 +31,8 @@ class TFObjectDetectionAPI:
 
     @staticmethod
     def __download_model(model_path, download_base, model_file):
-        print("downloading model...")
+
+        print("downloading model...", model_path)
         try:
             os.mkdir(model_path)
         except:
@@ -47,8 +50,8 @@ class TFObjectDetectionAPI:
 
     @staticmethod
     def __fetch_model_path(model_name):
-        dir_path = TFObjectDetectionAPI.__get_dir_path()
-        model_path = dir_path + '/object_detection/pretrained/'
+        dir_path = pretrained_path.get()
+        model_path = dir_path + '/'
         model_file = model_name + '.tar.gz'
         download_base = 'http://download.tensorflow.org/models/object_detection/'
         path_to_frozen_graph = model_path + model_name + '/frozen_inference_graph.pb'
@@ -59,7 +62,7 @@ class TFObjectDetectionAPI:
     @staticmethod
     def __fetch_category_indices():
         dir_path = TFObjectDetectionAPI.__get_dir_path()
-        path_to_labels = os.path.join(dir_path + '/object_detection/data', 'mscoco_label_map.pbtxt')
+        path_to_labels = os.path.join(data_path.get(), 'mscoco_label_map.pbtxt')
         class_count = 90
         label_map = label_map_util.load_labelmap(path_to_labels)
         categories = label_map_util.convert_label_map_to_categories(label_map,
@@ -108,7 +111,8 @@ class TFObjectDetectionAPI:
         else:
             detection_masks = None
 
-        result = InferedDetections(inference.get_input(), num_detections, detection_boxes, detection_classes, detection_scores,
+        result = InferedDetections(inference.get_input(), num_detections, detection_boxes, detection_classes,
+                                   detection_scores,
                                    masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
                                    anotator=self.annotate)
         inference.set_result(result)

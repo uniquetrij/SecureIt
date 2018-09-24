@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Class definition of YOLO_v3 style detection model on image and video
-"""
 
 import colorsys
 from os.path import dirname, realpath
@@ -27,12 +23,14 @@ from keras.utils import multi_gpu_model
 from tf_session.tf_session_runner import SessionRunnable
 from tf_session.tf_session_utils import Pipe
 
+from data.obj_detection.yolo_api.yolo_keras.pretrained import path as pretrained_path
+from data.obj_detection.yolo_api.yolo_keras.data import path as data_path
 
 class YOLOObjectDetectionAPI():
     _defaults = {
-        "model_path": '/pretrained/yolo_v3.h5',
-        "anchors_path": '/data/yolo_anchors.txt',
-        "classes_path": '/data/coco.names',
+        "model_path": pretrained_path.get()+'/yolo_v3.h5',
+        "anchors_path": data_path.get()+'/yolo_anchors.txt',
+        "classes_path": data_path.get()+'/coco.names',
         "score": 0.3,
         "iou": 0.45,
         "model_image_size": (416, 416),
@@ -110,7 +108,7 @@ class YOLOObjectDetectionAPI():
 
     def _get_class(self):
         dir_path = YOLOObjectDetectionAPI.__get_dir_path()
-        classes_path = os.path.expanduser(dir_path+"/"+self.classes_path)
+        classes_path = os.path.expanduser(self.classes_path)
         with open(classes_path) as f:
             class_names = f.readlines()
         class_names = [c.strip() for c in class_names]
@@ -122,7 +120,7 @@ class YOLOObjectDetectionAPI():
 
     def _get_anchors(self):
         dir_path = YOLOObjectDetectionAPI.__get_dir_path()
-        anchors_path = os.path.expanduser(dir_path+"/"+self.anchors_path)
+        anchors_path = os.path.expanduser(self.anchors_path)
         with open(anchors_path) as f:
             anchors = f.readline()
         anchors = [float(x) for x in anchors.split(',')]
@@ -130,7 +128,7 @@ class YOLOObjectDetectionAPI():
 
     def generate(self):
         dir_path = YOLOObjectDetectionAPI.__get_dir_path()
-        model_path = os.path.expanduser(dir_path+"/"+self.model_path)
+        model_path = os.path.expanduser(self.model_path)
         assert model_path.endswith('.h5'), 'Keras model or weights must be a .h5 file.'
 
         # Load model, or construct model and load weights.
