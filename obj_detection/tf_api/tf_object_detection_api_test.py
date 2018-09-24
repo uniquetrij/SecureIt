@@ -10,7 +10,7 @@ from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
 # cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture('/home/uniquetrij/PycharmProjects/SecureIt/data/obj_tracking/videos/video1.avi')
+cap = cv2.VideoCapture('/home/developer/PycharmProjects/SecureIt/data/obj_tracking/videos/inputs/video1.avi')
 
 session_runner = SessionRunner()
 while True:
@@ -46,7 +46,7 @@ while True:
             if i_dets.get_classes(i) == 1 and i_dets.get_scores(i) > 0.7:
                 cv2.imwrite("/home/uniquetrij/PycharmProjects/SecureIt/data/obj_tracking/outputs/patches/" + (
                     str(frame_no).zfill(5)) + (str(i).zfill(2)) + ".jpg", i_dets.extract_patches(i))
-        print(frame_no)
+        # print(frame_no)
         frame_no += 1
 
 # Thread(target=detect_objects).start()

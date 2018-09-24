@@ -15,7 +15,7 @@ class MarsExtractorAPI:
     def __init__(self, graph_prefix='', flush_pipe_on_read=False):
         self.__flush_pipe_on_read = flush_pipe_on_read
 
-        self.__model_path = "/home/uniquetrij/PycharmProjects/SecureIt/data/trained/mars-small128.pb"
+        self.__model_path = "/home/developer/PycharmProjects/SecureIt/data/obj_tracking/trained/mars.pb"
 
 
         self.__thread = None

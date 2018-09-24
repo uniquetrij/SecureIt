@@ -13,9 +13,9 @@ from tf_session.tf_session_utils import Inference
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture("/home/uniquetrij/PycharmProjects/SecureIt/obj_tracking/data/videos/video1.avi")
+# cap = cv2.VideoCapture("/home/developer/PycharmProjects/SecureIt/data/obj_tracking/videos/inputs/video1.avi")
 # cap = cv2.VideoCapture('/home/developer/Downloads/shoe_tracking.mp4')
-# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(-1)
 while True:
     ret, image = cap.read()
     if ret:
@@ -35,17 +35,21 @@ trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
 tracker.run()
 
+def read():
+    while True:
+        ret, image = cap.read()
+        if not ret:
+            continue
+        detector_ip.push(Inference(image.copy()))
+        detector_op.wait()
+        ret, inference = detector_op.pull()
+        if ret:
+            i_dets = inference.get_result()
+            trk_ip.push(Inference(i_dets))
+
+Thread(target=read).start()
 
 while True:
-    ret, image = cap.read()
-    if not ret:
-        continue
-    detector_ip.push(Inference(image.copy()))
-    detector_op.wait()
-    ret, inference = detector_op.pull()
-    if ret:
-        i_dets = inference.get_result()
-        trk_ip.push(Inference(i_dets))
     trk_op.wait()
     ret, inference = trk_op.pull()
     if ret:
@@ -59,12 +63,5 @@ while True:
                           thickness=cv2.FILLED)
             cv2.putText(frame, str(int(d[4])), (int(d[0]) + 2, int(d[1]) + 13), cv2.FONT_HERSHEY_PLAIN, 1,
                         (255, 255, 255), thickness=1)
-
-        # cv2.imshow("diff_img", inference.get_meta_dict()['diff_img'])
-        # cv2.imshow("mask", inference.get_meta_dict()['mask'])
-        # for i, patch in enumerate(patches):
-        #     cv2.imshow("patch" + str(i), patch)
         cv2.imshow("output", frame)
         cv2.waitKey(1)
-        # cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
-        # count+=1

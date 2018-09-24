@@ -9,8 +9,8 @@ from obj_detection.yolo_api.yolo_keras_object_detection_api import YOLOObjectDet
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
-cap = cv2.VideoCapture(-1)
-# cap = cv2.VideoCapture('/home/developer/Downloads/Hitman Agent 47 - car chase scene HD.mp4')
+# cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture('/home/developer/PycharmProjects/SecureIt/data/obj_tracking/videos/inputs/video1.avi')
 
 session_runner = SessionRunner()
 while True:

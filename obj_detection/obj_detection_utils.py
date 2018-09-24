@@ -9,6 +9,8 @@ class InferedDetections:
         self.num_detections = int(np.squeeze(num_detections))
         self.image = image
         self.height, self.width = image.shape[0], image.shape[1]
+
+        # print(boxes.shape)
         if is_normalized:
             self.boxes_normalized = boxes
             self.boxes = boxes * [self.height, self.width, self.height, self.width]

@@ -18,6 +18,7 @@ class KNNTracker(object):
 
     def __init__(self, bbox, features, hit_streak_threshold=10):
         self.__id = self.__get_next_id()
+        self.__s_id = None
         self.__bbox = bbox
         self.__features_fixed = [features]
         self.__features_update = [features]
@@ -40,12 +41,18 @@ class KNNTracker(object):
     def get_id(self):
         return self.__id
 
+    def get_s_id(self):
+        return self.__s_id
+
+    def set_s_id(self, s_id):
+        self.__s_id = s_id
+
     def update(self, bbox, f_vec):
-        if len(self.__features_fixed) < 10:
+        if len(self.__features_fixed) < 50:
             self.__features_fixed.append(f_vec)
-        # self.__features_update.append(f_vec)
-        # if len(self.__features_update) > 50:
-        #     self.__features_update.pop(0)
+        self.__features_update.append(f_vec)
+        if len(self.__features_update) > 50:
+            self.__features_update.pop(0)
         self.__time_since_update = 0
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
 
@@ -65,7 +72,7 @@ class KNNTracker(object):
         return X, y
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.65):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.8):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -83,11 +90,22 @@ class KNNTracker(object):
         matched_indices = []
         unmatched_detections = []
         for i, f_vec in enumerate(f_vecs):
-            id, count, distance = predictor.update(X, Y).observe(X[12],
-                                                                 distance_metric=DistanceMetric.euclidean_distance).obtain(
-                7, 0)
-            if distance < distance_threshold:
-                matched_indices.append([i, id])
+            # id, count, distance = predictor.update(X, Y).observe(f_vec,
+            #                                                      distance_metric=DistanceMetric.euclidean_distance).obtain_old(
+            #     10, 1)
+            # predictor.update(X, Y)
+            predictor.update(X, Y).observe(f_vec, distance_metric=DistanceMetric.euclidean_distance).obtain(10)
+            id1, count1, distance1, _, _ = predictor.get(1)
+            try:
+                id2, count2, distance2, _, _ = predictor.get(2)
+            except:
+                pass
+            if distance1 < distance_threshold:
+                matched_indices.append([i, id1])
+                try:
+                    print(id1,id2)
+                except:
+                    pass
             else:
                 unmatched_detections.append(i)
 

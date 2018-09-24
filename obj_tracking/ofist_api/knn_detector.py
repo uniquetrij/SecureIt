@@ -36,51 +36,88 @@ class KnnDetector:
         self.__D, self.__Z = KnnDetector.sort_list(self.__D, self.__Y)
         return self
 
-    def obtain(self, k=5, n=None):
+    def obtain_old(self, k=5, n=None):
         Z, D = self.__Z[:k], self.__D[:k]
         dict = {}
         for i in range(len(Z)):
             if Z[i] in dict.keys():
                 dict[Z[i]][0] += 1
-                dict[Z[i]][1] += D[i]
+                dict[Z[i]][1] = min(D[i],dict[Z[i]][1])
             else:
                 dict[Z[i]] = [1, D[i]]
 
-        for i in range(len(dict)):
-            dict[Z[i]][1] /= dict[Z[i]][0]
+        # for i in range(len(dict)):
+        #     dict[Z[i]][1] /= dict[Z[i]][0]
         if n is not None:
 
-            if n >= 0:
-                while n > 0:
+            if n > 0:
+                while n > 1:
                     del dict[max(dict.items(), key=itemgetter(1))[0]]
                     n -= 1
-                ret =  max(dict.items(), key=itemgetter(n))
+                ret = max(dict.items(), key=itemgetter(1))
             if n < 0:
                 while n < -1:
                     del dict[min(dict.items(), key=itemgetter(1))[0]]
                     n += 1
-                ret = tuple(min(dict.items(), key=itemgetter(n)))
+                ret = tuple(min(dict.items(), key=itemgetter(1)))
             return (ret[0], ret[1][0], ret[1][1])
+
         return dict
+
+    def obtain(self, k=5):
+        Z, D = self.__Z[:k], self.__D[:k]
+        dict = {}
+        for i in range(len(Z)):
+            if Z[i] in dict.keys():
+                dict[Z[i]][0] += 1
+                dict[Z[i]][1] = min(D[i], dict[Z[i]][1])
+                dict[Z[i]][2] += D[i]
+                dict[Z[i]][3] = max(D[i], dict[Z[i]][3])
+            else:
+                dict[Z[i]] = [1, D[i], D[i], D[i]]
+
+        for key in dict.keys():
+            dict[key][2] /= dict[key][0]
+
+        self.__obtain = {0: dict}
+        return dict
+
+    def get(self, m):
+        dict = self.__obtain.copy()
+        if m not in dict.keys():
+            n = m
+            if n is not None:
+                if n > 0:
+                    while n > 1:
+                        del dict[0][max(dict[0].items(), key=itemgetter(1))[0]]
+                        n -= 1
+                    dict[m] = max(dict[0].items(), key=itemgetter(1))
+                if n < 0:
+                    while n < -1:
+                        del dict[0][min(dict[0].items(), key=itemgetter(1))[0]]
+                        n += 1
+                    dict[m] = tuple(min(dict[0].items(), key=itemgetter(1)))
+        return dict[m][0], dict[m][1][0], dict[m][1][1], dict[m][1][2], dict[m][1][3]
 
     @staticmethod
     def sort_list(sort_by_values, list_to_sort):
         return zip(*sorted(zip(sort_by_values, list_to_sort)))
 
-    @staticmethod
-    def get_best_count(knn):
-        id, distance = knn
-        dict = {}
-        for i in range(len(id)):
-            if id[i] in dict.keys():
-                dict[id[i]][0] += 1
-                dict[id[i]][1] += distance[i]
-            else:
-                dict[id[i]] = [1, distance[i]]
-
-        for i in range(len(dict)):
-            dict[id[i]][1] /= dict[id[i]][0]
-        return dict
+    # @staticmethod
+    # def get_best_count(knn):
+    #     id, distance = knn
+    #     dict = {}
+    #     for i in range(len(id)):
+    #         if id[i] in dict.keys():
+    #             dict[id[i]][0] += 1
+    #             dict[id[i]][1] += distance[i]
+    #         else:
+    #             dict[id[i]] = [1, distance[i]]
+    #
+    #     for i in range(len(dict)):
+    #         print(i, dict[id[i]])
+    #         dict[id[i]][2] /= dict[id[i]][0]
+    #     return dict
 
 
 if __name__ == '__main__':
@@ -103,7 +140,9 @@ if __name__ == '__main__':
 
     Y = X[:, 2]
     X = X[:, :2].astype(np.float)
-    print(obj.update(X, Y).observe(X[12], distance_metric=DistanceMetric.euclidean_distance).obtain(7, -1))
+    print(obj.update(X, Y).observe(X[12], distance_metric=DistanceMetric.euclidean_distance).obtain(10))
+    print(obj.obtain_old(10))
+    # print(obj.get(1))
     # print(obj.get_k_nearest(7))
     # obj.observe(X[12], distance_metric=DistanceMetric.euclidean_distance)
     # print(obj.get_k_nearest(7))

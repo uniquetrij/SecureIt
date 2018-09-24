@@ -70,29 +70,10 @@ class OFISTObjectTrackingAPI:
 
         scores = i_dets.get_scores()
         for i in range(len(classes)):
-            if classes[i] == i_dets.get_category('person') and scores[i] > .75:
+            if classes[i] == i_dets.get_category('person') and scores[i] > .985:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
         patches = []
 
-        # if self.__bg_frame is None:
-        #     self.__bg_frame = frame
-        #     self.__bg_gray = cv2.cvtColor(self.__bg_frame, cv2.COLOR_BGR2GRAY)
-        #     self.__bg_gray = cv2.GaussianBlur(self.__bg_gray, (5, 5), 0)
-        #
-        # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # gray_frame = cv2.GaussianBlur(gray_frame, (5, 5), 0)
-        # difference = cv2.absdiff(self.__bg_gray, gray_frame)
-        # ret, mask = cv2.threshold(difference, 50, 255, cv2.THRESH_BINARY)
-        # mask = np.stack((mask, mask, mask), axis=2)
-        #
-        # image = np.multiply(frame, mask)
-        #
-        # inference.get_meta_dict()['mask'] = mask
-        # inference.get_meta_dict()['diff_img']=image
-
-        # blur = cv2.GaussianBlur(image, (5, 5), 0)
-        # image = cv2.addWeighted(image, 1.5, image, -0.5, 0)
-        # image = cv2.cvtColor(frame, cv2.COLOR_BGR2HLS)
         for i in range(len(bboxes)):
             box = bboxes[i]
             if self.__use_detection_mask:
@@ -119,8 +100,7 @@ class OFISTObjectTrackingAPI:
         bboxes = inference.get_meta_dict()['bboxes']
         self.frame_count = min(self.frame_count + 1, 1000)
 
-        matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes,
-                                                                                           distance_threshold=0.575)
+        matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes)
         if bboxes:
 
             # # update matched trackers with assigned detections
