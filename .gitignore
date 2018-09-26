@@ -2,9 +2,6 @@
 .idea/
 __pycache__/
 
-
-
-
 **/trained/**/*
 **/pretrained/**/*
 **/videos/**/*
