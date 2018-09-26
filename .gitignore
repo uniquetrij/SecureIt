@@ -3,12 +3,12 @@ __pycache__/
 
 !**/*.py
 
-**/trained/*
-**/pretrained/*
-**/videos/*
-**/images/*
-**/inputs/*
-**/outputs/*
+**/trained/**
+**/pretrained/**
+**/videos/**
+**/images/**
+**/inputs/**
+**/outputs/**
 **/sort_deep/MOT16
 **/sort_deep/resources
 
