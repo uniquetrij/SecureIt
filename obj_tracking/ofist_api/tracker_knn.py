@@ -11,7 +11,7 @@ class KNNTracker(object):
         KNNTracker.num_tracks += 1
         return KNNTracker.num_tracks
 
-    def __init__(self, bbox, features, hit_streak_threshold=10):
+    def __init__(self, bbox, features, frame_no, hit_streak_threshold=10):
         self.__id = self.__get_next_id()
         self.__s_id = None
         self.__bbox = bbox
@@ -20,6 +20,11 @@ class KNNTracker(object):
         self.__hit_streak = 0
         self.__time_since_update = 0
         self.__hit_streak_threshold = hit_streak_threshold
+        self.__hits = 1
+        self.__creation_time = frame_no
+
+    def get_creation_time(self):
+        return self.__creation_time
 
     def get_features(self):
         return self.__features_fixed + self.__features_update
@@ -42,7 +47,11 @@ class KNNTracker(object):
     def set_s_id(self, s_id):
         self.__s_id = s_id
 
+    def get_hits(self):
+        return self.__hits
+
     def update(self, bbox, f_vec):
+        self.__hits+=1
         if len(self.__features_fixed) < 50:
             self.__features_fixed.append(f_vec)
         self.__features_update.append(f_vec)
@@ -67,7 +76,7 @@ class KNNTracker(object):
         return X, y
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.8):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.375):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -89,7 +98,8 @@ class KNNTracker(object):
             #                                                      distance_metric=DistanceMetric.euclidean_distance).obtain_old(
             #     10, 1)
             # predictor.update(X, Y)
-            predictor.update(X, Y).observe(f_vec, distance_metric=DistanceMetric.euclidean_distance).obtain(10)
+            predictor.update(X, Y)
+            eu = predictor.observe(f_vec, distance_metric=DistanceMetric.cosine_distance).obtain(5)
             id1, count1, distance1, _, _ = predictor.get(1)
             try:
                 id2, count2, distance2, _, _ = predictor.get(2)

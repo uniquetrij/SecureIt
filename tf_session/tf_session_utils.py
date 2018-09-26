@@ -67,6 +67,7 @@ class Pipe:
 
     def close(self):
         self.__closed = True
+        self.__pause_resume.set()
 
     def is_closed(self):
         return len(self.__lst) == 0 and self.__closed == True

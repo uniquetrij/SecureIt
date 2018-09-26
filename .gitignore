@@ -10,5 +10,8 @@ __pycache__/
 **/sort_deep/MOT16
 **/sort_deep/resources
 
+!*path
+!*.py
+
 
 

@@ -1,5 +1,5 @@
 import cv2
-from data.obj_detection.videos import path as videos_path
+from data.obj_tracking.videos import path as videos_path
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
@@ -7,7 +7,7 @@ from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
 # cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture(videos_path.get()+'/video1.avi')
+cap = cv2.VideoCapture(videos_path.get()+'/Hitman Agent 47 - car chase scene HD.mp4')
 
 session_runner = SessionRunner()
 while True:
