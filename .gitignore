@@ -1,8 +1,6 @@
+
 .idea/
 __pycache__/
-
-
-!**/*.py
 
 **/trained/**/*
 **/pretrained/**/*
@@ -13,5 +11,4 @@ __pycache__/
 **/sort_deep/MOT16
 **/sort_deep/resources
 
-
-
+!**/*.py

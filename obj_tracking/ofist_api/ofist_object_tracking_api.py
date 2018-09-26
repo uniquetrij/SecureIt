@@ -98,7 +98,7 @@ class OFISTObjectTrackingAPI:
         # print(f_vecs.shape)
         inference = inference.get_meta_dict()['inference']
         bboxes = inference.get_meta_dict()['bboxes']
-        self.frame_count = min(self.frame_count + 1, 1000)
+        self.frame_count += 1
 
         matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes)
         if bboxes:
@@ -117,7 +117,8 @@ class OFISTObjectTrackingAPI:
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = KNNTracker(bboxes[i], f_vecs[i])
+                trk = KNNTracker(bboxes[i], f_vecs[i], self.frame_count)
+                print(trk.get_id())
                 self.trackers.append(trk)
 
         i = len(self.trackers)
@@ -128,7 +129,7 @@ class OFISTObjectTrackingAPI:
                 ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1, -1))  # +1 as MOT benchmark requires positive
             i -= 1
             # remove dead tracklet
-            if (trk.get_time_since_update() > self.max_age):
+            if (trk.get_time_since_update() > self.max_age or (self.frame_count - trk.get_creation_time() >= 30 and trk.get_hits() <= 2)):
                 self.trackers.pop(i)
 
         if (len(ret) > 0):
@@ -161,7 +162,9 @@ class OFISTObjectTrackingAPI:
         while self.__thread:
 
             if self.__in_pipe.is_closed():
+                self.__enc_in_pipe.close()
                 self.__out_pipe.close()
+
                 return
 
             ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
