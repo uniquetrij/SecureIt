@@ -1,7 +1,9 @@
 .idea/
 __pycache__/
 
-!**/*.py
+
+!**/trained/*.py
+!**/pretrained/*.py
 
 **/trained/**
 **/pretrained/**
