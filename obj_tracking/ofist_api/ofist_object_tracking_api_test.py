@@ -45,12 +45,13 @@ def read():
     while True:
         count+=1
         ret, image = cap.read()
-        if count == 100:
-            detector_ip.close()
-            print("breaking...")
-            trk_ip.close()
-            break
-            # continue
+        # if count == 100:
+        #     detector_ip.close()
+            # print("breaking...")
+            # trk_ip.close()
+            # break
+        if not ret:
+            continue
         detector_ip.push(Inference(image.copy()))
         # print('waiting')
         detector_op.wait()
@@ -67,10 +68,10 @@ t.start()
 video_writer = VideoWriter(out_path.get()+"/video1_out.avi",image.shape[1], image.shape[0], 25)
 
 while True:
-    print(detector_op.is_closed())
+    # print(detector_op.is_closed())
     trk_op.wait()
     if trk_ip.is_closed():
-        print("Here")
+        # print("Here")
         video_writer.finish()
         break
     ret, inference = trk_op.pull()
@@ -87,13 +88,13 @@ while True:
                         (255, 255, 255), thickness=1)
 
 
-        # count+=1
-        video_writer.write(frame)
+        # # count+=1
+        # video_writer.write(frame)
 
 
         # if patches:
         #     for i, patch in enumerate(patches):
         #         cv2.imshow("patch" + str(i), patch)
         #         cv2.waitKey(1)
-        # cv2.imshow("output", frame)
-        # cv2.waitKey(1)
+        cv2.imshow("output", frame)
+        cv2.waitKey(1)

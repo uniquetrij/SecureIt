@@ -1,6 +1,9 @@
 import numpy as np
 
+
 from obj_tracking.ofist_api.knn_detector import KnnDetector, DistanceMetric
+
+
 
 
 class KNNTracker(object):
@@ -22,6 +25,7 @@ class KNNTracker(object):
         self.__hit_streak_threshold = hit_streak_threshold
         self.__hits = 1
         self.__creation_time = frame_no
+
 
     def get_creation_time(self):
         return self.__creation_time
