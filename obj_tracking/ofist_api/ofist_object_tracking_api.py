@@ -21,8 +21,8 @@ class OFISTObjectTrackingAPI:
 
         self.__flush_pipe_on_read = flush_pipe_on_read
 
-        self.__feature_dim = (2048)
-        self.__image_shape = (224, 224, 3)
+        self.__feature_dim = (128)
+        self.__image_shape = (128, 64, 3)
 
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)

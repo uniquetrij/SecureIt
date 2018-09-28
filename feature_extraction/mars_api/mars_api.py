@@ -74,6 +74,7 @@ class MarsExtractorAPI:
 
         self.__feature_dim = self.__output_var.get_shape().as_list()[-1]
         self.__image_shape = self.__input_var.get_shape().as_list()[1:]
+        print(self.__image_shape)
 
     def run(self):
         if self.__thread is None:

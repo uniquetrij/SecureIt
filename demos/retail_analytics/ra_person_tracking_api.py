@@ -1,18 +1,27 @@
 from threading import Thread
 
 import cv2
-
-from demos.retail_analytics.tracker import Tracker
-from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
-from feature_extraction.mars_api.mars_api import MarsExtractorAPI
-from obj_tracking.ofist_api.tracker_knn import KNNTracker
-from tf_session.tf_session_utils import Pipe, Inference
 import numpy as np
+
+from demos.retail_analytics.tracker_knn import KNNTracker
+from demos.retail_analytics.zone import Zone
+from feature_extraction.mars_api.mars_api import MarsExtractorAPI
+from tf_session.tf_session_utils import Pipe, Inference
 
 
 class RAPersonTrackingAPI:
+    retinex_conf = {
+        "sigma_list": [15, 80, 250],
+        "G": 5.0,
+        "b": 25.0,
+        "alpha": 125.0,
+        "beta": 46.0,
+        "low_clip": 0.01,
+        "high_clip": 0.99
+    }
 
-    def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False):
+    def __init__(self, conf_path, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False):
+        self.__conf_path = conf_path
         self.max_age = max_age
         self.min_hits = min_hits
         self.trackers = []
@@ -23,13 +32,18 @@ class RAPersonTrackingAPI:
         self.__flush_pipe_on_read = flush_pipe_on_read
 
         self.__feature_dim = (2048)
-        self.__image_shape = (224, 224, 3)
+        self.__image_shape = (128, 64, 3)
 
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
 
         self.__use_detection_mask = use_detection_mask
+
+        self.__zones = Zone.create_zones_from_conf(self.__conf_path)
+
+    def get_zones(self):
+        return self.__zones
 
     number = 0
 
@@ -40,16 +54,23 @@ class RAPersonTrackingAPI:
 
         sx, sy, ex, ey = np.array(bbox).astype(np.int)
 
-        # dx = ex-sx
-        # dx = int(.25*dx)
+        dx = ex - sx
+        dy = ey - sy
 
-        # dy = ey-sy
-        # dy = int(.6*dy)
+        # dx = int(.125*dx)
 
-        dx = 0
-        dy = 0
+        # dy = dx * 2
 
-        image = image[sy:ey - dy, sx + dx:ex - dx]
+
+        # dy = int(.25*dy)
+
+        # dx = 0
+        # dy = 0
+
+        image = image[sy:int(sy+dy/4), sx:ex]
+
+        # image = retinex.MSRCP(image, RAPersonTrackingAPI.retinex_conf['sigma_list'], RAPersonTrackingAPI.retinex_conf['low_clip'], RAPersonTrackingAPI.retinex_conf['high_clip'] )
+
         image = cv2.resize(image, tuple(patch_shape[::-1]))
 
         # img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
@@ -102,41 +123,38 @@ class RAPersonTrackingAPI:
         bboxes = inference.get_meta_dict()['bboxes']
         self.frame_count += 1
 
-        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
-                                                                                           bboxes,
-                                                                                           self.__session_runner.get_session().graph)
+        matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers,
+                                                                                              bboxes)
         if bboxes:
             # print("Unmatched dets: ", unmatched_dets)
             # # update matched trackers with assigned detections
-            # for t, trk in enumerate(self.trackers):
-            #     if (t not in unmatched_trks):
-            #         d = matched[np.where(matched[:, 1] == t)[0], 0][0]
-            #         trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
-
-            # update matched trackers with assigned detections
-            # print(matched)
-            for t, trk in enumerate(self.trackers):
-
-                if t not in unmatched_trks:
-                    # print(np.where(matched[:, 1] == t)[0])
-                    d = matched[np.where(matched[:, 1] == t)[0], 0][0]
-
+            for trk in self.trackers:
+                if (trk.get_id() not in unmatched_trks):
+                    d = matched[np.where(matched[:, 1] == trk.get_id())[0], 0][0]
                     trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
+            # for t, trk in enumerate(self.trackers):
+            #
+            #     if t not in unmatched_trks:
+            #         # print(np.where(matched[:, 1] == t)[0])
+            #         d = matched[np.where(matched[:, 1] == t)[0], 0][0]
+            #
+            #         trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = Tracker(bboxes[i], f_vecs[i], self.frame_count)
+                trk = KNNTracker(self.__zones, bboxes[i], f_vecs[i], self.frame_count)
                 # print(trk.get_id())
                 self.trackers.append(trk)
 
         i = len(self.trackers)
         ret = []
-        # trails = {}
+
         for trk in reversed(self.trackers):
-            d = trk.get_bbox()
+            # d = trk.get_bbox()
             if (trk.get_hit_streak() >= self.min_hits):  # or self.frame_count <= self.min_hits):
-                ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1,
-                                                                                         -1))  # +1 as MOT benchmark requires positive
+                # ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1,
+                #                                                                     -1))  # +1 as MOT benchmark requires positive
+                ret.append(trk)
             i -= 1
             # remove dead tracklet
             if (trk.get_time_since_update() > self.max_age or (
@@ -147,7 +165,8 @@ class RAPersonTrackingAPI:
         # inference.get_meta_dict()['trails'] = trails
 
         if (len(ret) > 0):
-            inference.set_result(np.concatenate(ret))
+            # inference.set_result(np.concatenate(ret))
+            inference.set_result(ret)
         else:
             inference.set_result(np.empty((0, 5)))
         return inference

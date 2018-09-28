@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from data.obj_detection.videos import path as videos_path
+from data.videos import path as videos_path
 
 
 def from_image(image):
@@ -77,7 +77,7 @@ def from_image(image):
 
 
 if __name__ == '__main__':
-    cap = cv2.VideoCapture(videos_path.get()+'/video1.avi')
+    cap = cv2.VideoCapture(videos_path.get()+'/ra_rafee_cabin_1.mp4')
     ret = False
     while not ret:
         ret, frame = cap.read()

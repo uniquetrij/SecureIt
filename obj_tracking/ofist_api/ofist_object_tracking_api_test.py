@@ -4,7 +4,7 @@ from time import sleep
 import numpy as np
 import cv2
 from data.obj_detection.videos import path as videos_path
-from data.obj_tracking.output import path as out_path
+from data.obj_tracking.outputs import path as out_path
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, \
@@ -89,12 +89,13 @@ while True:
 
 
         # # count+=1
-        # video_writer.write(frame)
+        video_writer.write(frame)
 
 
-        # if patches:
-        #     for i, patch in enumerate(patches):
-        #         cv2.imshow("patch" + str(i), patch)
-        #         cv2.waitKey(1)
+        if patches:
+            for i, patch in enumerate(patches):
+                cv2.imshow("patch" + str(i), patch)
+                print(patch.shape)
+                cv2.waitKey(1)
         cv2.imshow("output", frame)
         cv2.waitKey(1)

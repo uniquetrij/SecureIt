@@ -16,7 +16,8 @@ class Tracker(object):
         Tracker.num_tracks += 1
         return Tracker.num_tracks
 
-    def __init__(self, bbox, features, frame_no, hit_streak_threshold = 10):
+    def __init__(self, zones, bbox, features, frame_no, hit_streak_threshold = 10):
+        self.__zones = zones
         self.__id = self.__get_next_id()
         self.__bbox = bbox
         self.__features_fixed = [features]
@@ -26,7 +27,7 @@ class Tracker(object):
         self.__hit_streak_threshold = hit_streak_threshold
         self.__hits = 1
         self.__creation_time = frame_no
-        self.__trail = Trail(self.__id)
+        self.__trail = Trail(self.__zones, self.__id)
 
     def get_creation_time(self):
         return self.__creation_time
@@ -92,8 +93,8 @@ class Tracker(object):
                 # if ((abs(float(y2-y1)**2 - float(x2-x1)**2)**0.5)) < 25:
                 #     print((abs(float(y2 - y1) ** 2 - float(x2 - x1) ** 2) ** 0.5))
                 #     print(d,t)
-                #similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
-                similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
+                similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
+                # similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
         '''The linear assignment module tries to minimise the total assignment cost.
         In our case we pass -iou_matrix as we want to maximise the total IOU between track predictions and the frame detection.'''
 

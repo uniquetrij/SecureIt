@@ -5,8 +5,9 @@ from utils.csv_reader import read_csv
 
 
 class Zone:
-    def __init__(self, co_ordinates):
-        self.__coords = co_ordinates
+    def __init__(self, id, coords):
+        self.__id = id
+        self.__coords = coords
         self.__zone_path = mplPath.Path(np.array(self.__coords))
 
     def is_in_zone(self, point):
@@ -14,6 +15,12 @@ class Zone:
 
     def is_centroid_in_zone(self, bbox):
         return self.is_in_zone(Zone.find_centroid(bbox))
+
+    def get_id(self):
+        return self.__id
+
+    def get_coords(self):
+        return self.__coords
 
     @staticmethod
     def find_centroid(bbox):
@@ -26,11 +33,11 @@ class Zone:
         zone_conf = read_csv(conf_path)
         zones = []
         for line in zone_conf:
-            cols = line
-            print(line)
+            coords = line[1:]
+
             pts =[]
-            for i in range(0, len(cols), 2):
-                x, y = cols[i], cols[i+1]
+            for i in range(0, len(coords), 2):
+                x, y = coords[i], coords[i+1]
                 pts.append([float(x),float(y)])
-            zones.append(Zone(np.array(pts)))
+            zones.append(Zone(line[0], np.array(pts)))
         return zones
