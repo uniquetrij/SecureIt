@@ -80,7 +80,7 @@ class TFWeaponDetectionAPI:
 
         result = InferedDetections(inference.get_input(), num_detections, detection_boxes, detection_classes, detection_scores,
                                    masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
-                                   anotator=self.annotate)
+                                   annotator=self.annotate)
         inference.set_result(result)
         return inference
 

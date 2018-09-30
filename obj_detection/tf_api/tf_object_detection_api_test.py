@@ -6,8 +6,8 @@ from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
-# cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture(videos_path.get()+'/Hitman Agent 47 - car chase scene HD.mp4')
+cap = cv2.VideoCapture(-1)
+# cap = cv2.VideoCapture(videos_path.get()+'/Hitman Agent 47 - car chase scene HD.mp4')
 
 session_runner = SessionRunner()
 while True:
@@ -34,8 +34,8 @@ while True:
     if ret:
         i_dets = inference.get_result()
         # print(i_dets.get_masks()[0].shape)
-        frame = i_dets.anotate()
-        cv2.imshow("annotated", i_dets.anotate())
+        frame = i_dets.get_annotated()
+        cv2.imshow("annotated", i_dets.get_annotated())
         # cv2.imshow("annotated", i_dets.extract_patch(0))
         cv2.waitKey(1)
         # person = i_dets.get_category('person')

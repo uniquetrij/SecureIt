@@ -1,12 +1,19 @@
 #!/usr/bin/env python
+import cv2
 import multiprocessing
 import uuid
 from multiprocessing import Process
 
+import matplotlib.path as mplPath
 from flask import Flask
 from flask_cors import CORS
 from flask_restful import Api, Resource
-import matplotlib.path as mplPath
+
+from data.obj_tracking.videos import path as videos_path
+from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
+    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
+from tf_session.tf_session_runner import SessionRunner
+from tf_session.tf_session_utils import Inference
 
 app = Flask(__name__)
 CORS(app)
@@ -16,47 +23,47 @@ from flask import Response
 import numpy as np
 from threading import Thread
 from time import sleep
-import cv2
-from obj_detection.tf_api.old_tf_api import TFObjectDetectionAPI, PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
 
-detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28)
-
-detector.start()
-
-# image = cv2.imread("/home/allahbaksh/PycharmProjects/SecureIt/data/images/people-walking-commercial-drive-landing.jpg")
-
-ip = detector.getInPipe()
-op = detector.getOutPipe()
-
+# cap = cv2.VideoCapture(videos_path.get() + '/Hitman Agent 47 - car chase scene HD.mp4')
 cap = cv2.VideoCapture(-1)
+session_runner = SessionRunner()
+while True:
+    ret, image = cap.read()
+    if ret:
+        break
 
-# cap = cv2.VideoCapture("/home/allahbaksh/Downloads/apq_01.mp4")
+detection = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
+detector_ip = detection.get_in_pipe()
+detector_op = detection.get_out_pipe()
+detection.use_session_runner(session_runner)
+# detection.use_threading()
+session_runner.start()
+detection.run()
 
 inference = None
-
 
 manager = multiprocessing.Manager()
 return_dict = manager.dict()
 
+
 def load():
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    print("Frames Per Second:", fps, "\n")
-    while(True):
+    # print("LOADED")
+    while True:
         ret, image = cap.read()
+        print(ret)
         if not ret:
-            try:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            except:
-                pass
             continue
-        ip.push(image.copy())
+        detector_ip.push(Inference(image.copy()))
+        # print("#################################")
         sleep(0.05)
+
 
 def display():
     global inference
-    while(True):
-        ret, inference = op.pull()
-        sleep(0.05)
+    while (True):
+        detector_op.wait()
+        ret, inference = detector_op.pull(True)
+        # print("done----------------------------")
 
 
 @app.route('/')
@@ -71,11 +78,18 @@ def genVideoFeed():
 
     while True:
         try:
+            # print("*****************************************************************")
+            i_dets = inference.get_result()
+            frame = i_dets.get_image()
+            print(frame.shape)
             yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', inference.getImage())[1].tostring() + b'\r\n')
+                   b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', frame)[
+                       1].tostring() + b'\r\n')
         except GeneratorExit:
+            print("E1")
             return
-        except:
+        except Exception as e:
+            # print(e)
             pass
 
 
@@ -92,8 +106,11 @@ def genAnnotatedFeed():
 
     while True:
         try:
+            i_dets = inference.get_result()
+            frame = i_dets.get_annotated()
             yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', inference.getAnnotatedImage())[1].tostring() + b'\r\n')
+                   b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', frame)[
+                       1].tostring() + b'\r\n')
         except GeneratorExit:
             return
         except:
@@ -107,39 +124,38 @@ def annotated_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-def genQueueFeed():
-    global inference
-    global return_dict
-
-    """Video streaming generator function."""
-
-    while True:
-        try:
-            image = inference.getImage()
-            image = annotateQueue(image, inference.getDecisionInstances(), return_dict.get('trapiz', None))
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', image)[1].tostring() + b'\r\n')
-        except GeneratorExit:
-            return
-        except:
-            pass
-
-@app.route('/queue_feed')
-def queue_feed():
-    """Video streaming route. Put this in the src attribute of an img tag."""
-    return Response(genQueueFeed(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+# def genQueueFeed():
+#     global inference
+#     global return_dict
+#
+#     """Video streaming generator function."""
+#
+#     while True:
+#         try:
+#             image = inference.getImage()
+#             image = annotateQueue(image, inference.getDecisionInstances(), return_dict.get('trapiz', None))
+#             yield (b'--frame\r\n'
+#                    b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', image)[1].tostring() + b'\r\n')
+#         except GeneratorExit:
+#             return
+#         except:
+#             pass
+#
+#
+# @app.route('/queue_feed')
+# def queue_feed():
+#     """Video streaming route. Put this in the src attribute of an img tag."""
+#     return Response(genQueueFeed(),
+#                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 def annotateQueue(img, decisionInstances, region=None):
-
     height, width = img.shape[0], img.shape[1]
     if not region:
         region = [[0., 0.],
-                  [width/2, 0.],
-                  [width/2, height],
+                  [width / 2, 0.],
+                  [width / 2, height],
                   [0., height]]
-
 
     bbPath = mplPath.Path(
         np.array(region))
@@ -170,19 +186,24 @@ def annotateQueue(img, decisionInstances, region=None):
 
 api = Api(app)
 
+
 class crowdcount(Resource):
     def get(self):
         global inference
         return ({"msg": int(inference.getCrowdCount())})
 
+
 api.add_resource(crowdcount, '/crowd_count')
+
 
 class roi(Resource):
     def get(self):
-        Process(target=from_image, args=(cap.read()[1],return_dict,)).start()
+        Process(target=from_image, args=(cap.read()[1], return_dict,)).start()
         return ({"msg": "success"})
 
+
 api.add_resource(roi, '/roi')
+
 
 def from_image(image, return_dict):
     try:
@@ -239,33 +260,23 @@ def from_image(image, return_dict):
         roi = np.float32(np.array(points.copy()))
         mark = 0.47 * width
 
-
         temp_img = image.copy()
 
         cv2.polylines(temp_img, [np.int32(roi)], 1, (0, 255, 0), 3)
         cv2.imshow(winname, temp_img)
 
-
         roi = roi.tolist()
         if roi:
             return_dict["trapiz"] = roi
 
-        while(True):
+        while (True):
             k = cv2.waitKey(0)
     except:
         pass
 
 
-
-
-
-
-
-
-
 if __name__ == '__main__':
-
     Thread(target=load).start()
     Thread(target=display).start()
 
-    app.run()
+    app.run(port=5000)

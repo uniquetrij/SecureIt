@@ -5,7 +5,7 @@ import numpy as np
 
 class InferedDetections:
     def __init__(self, image, num_detections, boxes, classes, scores, masks=None, is_normalized=True,
-                 get_category_fnc=None, anotator=None):
+                 get_category_fnc=None, annotator=None):
         self.num_detections = int(np.squeeze(num_detections))
         self.image = image
         self.height, self.width = image.shape[0], image.shape[1]
@@ -22,7 +22,7 @@ class InferedDetections:
         self.masks = masks
         self.boxes_as_xywh = None
         self.get_category_fnc = get_category_fnc
-        self.anotator = anotator
+        self.annotator = annotator
 
     def get_length(self):
         return self.num_detections
@@ -74,8 +74,8 @@ class InferedDetections:
     def get_category(self, category):
         return self.get_category_fnc(category)
 
-    def anotate(self):
-        return self.anotator(self)
+    def get_annotated(self):
+        return self.annotator(self)
 
     def extract_patches(self, index=None, resize_wh=None, margin_tlbr=None):
         if index is not None:

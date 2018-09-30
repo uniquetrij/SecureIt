@@ -39,8 +39,8 @@ while True:
     if ret:
         i_dets = inference.get_result()
         # print(i_dets.get_masks()[0].shape)
-        frame = i_dets.anotate()
-        cv2.imshow("", i_dets.anotate())
+        frame = i_dets.get_annotated()
+        cv2.imshow("", i_dets.get_annotated())
         cv2.waitKey(1)
         # cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
     print(frame_no)

@@ -8,9 +8,10 @@ from sklearn.model_selection import train_test_split
 import os
 from collections import OrderedDict
 import itertools
+
+from feature_comparator.siamese_api.feature_vector import FeatureVector
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
 from feature_comparator.siamese_api.siamese import SiameseComparator
-from feature_comparator.feature_vector.feature_vector import FeatureVector
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 from data.feature_comparator.siamese_api.inputs import path as input_path

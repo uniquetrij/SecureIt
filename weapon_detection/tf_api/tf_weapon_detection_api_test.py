@@ -38,7 +38,7 @@ if __name__ == '__main__':
         ret, inference = ret_pipe.pull()
         if ret:
             # print(inference.get_classes())
-            frame = inference.get_result().anotate()
+            frame = inference.get_result().get_annotated()
             cv2.imshow("", frame )
             cv2.waitKey(1)
             cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
