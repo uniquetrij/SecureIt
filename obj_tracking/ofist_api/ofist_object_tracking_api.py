@@ -4,6 +4,7 @@ import cv2
 
 from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
+from obj_tracking.ofist_api import retinex
 from obj_tracking.ofist_api.tracker import Tracker
 from obj_tracking.ofist_api.tracker_knn import KNNTracker
 from tf_session.tf_session_utils import Pipe, Inference
@@ -11,7 +12,15 @@ import numpy as np
 
 
 class OFISTObjectTrackingAPI:
-
+    retinex_conf = {
+        "sigma_list": [15, 80, 250],
+        "G": 5.0,
+        "b": 25.0,
+        "alpha": 125.0,
+        "beta": 46.0,
+        "low_clip": 0.01,
+        "high_clip": 0.99
+    }
     def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False):
         self.max_age = max_age
         self.min_hits = min_hits
@@ -53,9 +62,12 @@ class OFISTObjectTrackingAPI:
         # img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
         # image = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
 
-        image[0] = cv2.equalizeHist(image[0])
-        image[1] = cv2.equalizeHist(image[1])
-        image[2] = cv2.equalizeHist(image[2])
+        image = retinex.MSRCP(image, OFISTObjectTrackingAPI.retinex_conf['sigma_list'],
+                              OFISTObjectTrackingAPI.retinex_conf['low_clip'],
+                              OFISTObjectTrackingAPI.retinex_conf['high_clip'])
+        # image[0] = cv2.equalizeHist(image[0])
+        # image[1] = cv2.equalizeHist(image[1])
+        # image[2] = cv2.equalizeHist(image[2])
 
 
 

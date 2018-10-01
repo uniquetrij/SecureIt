@@ -3,7 +3,7 @@ from time import sleep
 
 import numpy as np
 import cv2
-from data.obj_detection.videos import path as videos_path
+from data.videos import path as videos_path
 from data.obj_tracking.outputs import path as out_path
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
@@ -18,7 +18,7 @@ from utils.video_writer import VideoWriter
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
+cap = cv2.VideoCapture(videos_path.get() + '/t_mobile_demo.mp4')
 # cap = cv2.VideoCapture(-1)
 while True:
     ret, image = cap.read()
@@ -33,7 +33,7 @@ detector_op = detector.get_out_pipe()
 detector.use_threading()
 detector.run()
 
-tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True)
+tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False)
 tracker.use_session_runner(session_runner)
 trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()

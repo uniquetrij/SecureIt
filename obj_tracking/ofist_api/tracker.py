@@ -63,7 +63,7 @@ class Tracker(object):
         return self.__hit_streak
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, similarity_threshold=0.4):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, similarity_threshold=0.65):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
