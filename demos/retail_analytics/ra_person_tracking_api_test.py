@@ -12,15 +12,24 @@ from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 from utils.video_writer import VideoWriter
 
+from camera_interface.flir_api.flir_camera import FLIRCamera
+
 session_runner = SessionRunner()
 session_runner.start()
 
 cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
 # cap = cv2.VideoCapture(-1)
+
 while True:
     ret, image = cap.read()
     if ret:
         break
+
+
+
+
+
+
 
 # detector =  YOLOObjectDetectionAPI('yolo_api', True)
 detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
@@ -38,11 +47,18 @@ tracker.run()
 
 
 def read():
+    flir = FLIRCamera(0)
+    flir_op = flir.get_out_pipe()
+    flir.run()
     count = 0
 
     while True:
         count += 1
-        ret, image = cap.read()
+        flir_op.wait()
+        ret, image = flir_op.pull()
+        # cv2.imshow("Flir Camera", frame)
+        # cv2.waitKey(1)
+        # ret, image = cap.read()
         # if count == 100:
         #     detector_ip.close()
         # print("breaking...")
