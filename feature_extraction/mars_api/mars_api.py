@@ -28,6 +28,9 @@ class MarsExtractorAPI:
         else:
             self.__graph_prefix = graph_prefix + '/'
 
+    def get_input_shape(self):
+        return  self.__image_shape
+
     def __preprocess(self, original):
         preprocessed = cv2.resize(original, tuple(self.__image_shape[:2][::-1]))
         # preprocessed = resnet50.preprocess_input(preprocessed)
@@ -74,7 +77,7 @@ class MarsExtractorAPI:
 
         self.__feature_dim = self.__output_var.get_shape().as_list()[-1]
         self.__image_shape = self.__input_var.get_shape().as_list()[1:]
-        print(self.__image_shape)
+        # print(self.__image_shape)
 
     def run(self):
         if self.__thread is None:

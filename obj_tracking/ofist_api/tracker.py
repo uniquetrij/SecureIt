@@ -63,7 +63,7 @@ class Tracker(object):
         return self.__hit_streak
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, graph, similarity_threshold=0.3):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, similarity_threshold=0.4):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -85,12 +85,14 @@ class Tracker(object):
                 # if ((abs(float(y2-y1)**2 - float(x2-x1)**2)**0.5)) < 25:
                 #     print((abs(float(y2 - y1) ** 2 - float(x2 - x1) ** 2) ** 0.5))
                 #     print(d,t)
-                #similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
-                similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
+                similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
+                # similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
         '''The linear assignment module tries to minimise the total assignment cost.
         In our case we pass -iou_matrix as we want to maximise the total IOU between track predictions and the frame detection.'''
 
         matched_indices = linear_assignment(-similarity_matrix)
+
+        # print("Matched Indices: ", matched_indices[:,1])
 
         unmatched_detections = []
         for d, det in enumerate(f_vecs):
@@ -99,19 +101,25 @@ class Tracker(object):
         unmatched_trackers = []
         for t, trk in enumerate(trackers):
             if (t not in matched_indices[:, 1]):
-                unmatched_trackers.append(t)
+                # print("Unmatched Tracker: ", t, trackers[t].get_id())
+                unmatched_trackers.append(trackers[t].get_id())
                 trk.__hit_streak = max(0, trk.__hit_streak-1)
                 trk.__time_since_update += 1
 
         # filter out matched with low IOU
         matches = []
         for m in matched_indices:
+            trk_index = m[1]
+            trk_id = trackers[trk_index].get_id()
             if (similarity_matrix[m[0], m[1]] < similarity_threshold):
                 unmatched_detections.append(m[0])
-                unmatched_trackers.append(m[1])
+                unmatched_trackers.append(trk_id)
+                # print("Unmatched Tracker ID: ", trk_id)
+                trk = trackers[trk_index]
+                trk.__hit_streak = max(0, trk.__hit_streak - 1)
+                trk.__time_since_update += 1
             else:
-
-                matches.append(m.reshape(1, 2))
+                matches.append(np.array([m[0], trk_id]).reshape(1, 2))
         if (len(matches) == 0):
             matches = np.empty((0, 2), dtype=int)
         else:

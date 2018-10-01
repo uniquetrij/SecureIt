@@ -95,7 +95,7 @@ while True:
         if patches:
             for i, patch in enumerate(patches):
                 cv2.imshow("patch" + str(i), patch)
-                print(patch.shape)
+                # print(patch.shape)
                 cv2.waitKey(1)
         cv2.imshow("output", frame)
         cv2.waitKey(1)

@@ -80,7 +80,7 @@ class KNNTracker(object):
         return X, y
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.375):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.25):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -103,7 +103,7 @@ class KNNTracker(object):
             #     10, 1)
             # predictor.update(X, Y)
             predictor.update(X, Y)
-            eu = predictor.observe(f_vec, distance_metric=DistanceMetric.cosine_distance).obtain(5)
+            eu = predictor.observe(f_vec, distance_metric=DistanceMetric.cosine_distance).obtain(1)
             id1, count1, distance1, _, _ = predictor.get(1)
             try:
                 id2, count2, distance2, _, _ = predictor.get(2)

@@ -5,6 +5,7 @@ import numpy as np
 from keras import backend as K
 from keras.applications import resnet50
 
+from tf_session.tf_session_runner import SessionRunnable
 from tf_session.tf_session_utils import Pipe
 
 
@@ -23,6 +24,9 @@ class ResNet50ExtractorAPI:
             self.__graph_prefix = ''
         else:
             self.__graph_prefix = graph_prefix + '/'
+
+    def get_input_shape(self):
+        return  self.__image_shape
 
     def __preprocess(self, original):
         preprocessed = cv2.resize(original, tuple(self.__image_shape[:2][::-1]))
@@ -73,12 +77,12 @@ class ResNet50ExtractorAPI:
 
             ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
-                self.__session_runner.get_in_pipe().push((self.__job, inference))
+                self.__session_runner.get_in_pipe().push(SessionRunnable(self.__job, inference))
             else:
                 self.__in_pipe.wait()
 
     def __job(self, inference):
         try:
-            self.__out_pipe.push((self.__model.observe(inference.get_data()), inference))
+            self.__out_pipe.push((self.__model.predict(inference.get_data()), inference))
         except:
             self.__out_pipe.push((np.zeros((0, self.__feature_dim), np.float32), inference))

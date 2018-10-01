@@ -4,6 +4,7 @@ import cv2
 
 from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
+from obj_tracking.ofist_api.tracker import Tracker
 from obj_tracking.ofist_api.tracker_knn import KNNTracker
 from tf_session.tf_session_utils import Pipe, Inference
 import numpy as np
@@ -21,8 +22,8 @@ class OFISTObjectTrackingAPI:
 
         self.__flush_pipe_on_read = flush_pipe_on_read
 
-        self.__feature_dim = (128)
-        self.__image_shape = (128, 64, 3)
+        # self.__feature_dim = (128)
+        # self.__image_shape = (128, 64, 3)
 
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
@@ -100,7 +101,7 @@ class OFISTObjectTrackingAPI:
         bboxes = inference.get_meta_dict()['bboxes']
         self.frame_count += 1
 
-        matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes)
+        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes)
         if bboxes:
 
             # # update matched trackers with assigned detections
@@ -110,6 +111,12 @@ class OFISTObjectTrackingAPI:
             #         trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
 
             # update matched trackers with assigned detections
+            # print("Num dets: ", len(bboxes))
+            # print("Matched indices: ",matched)
+            # print("Unmatched dets: ", unmatched_dets)
+            # print("Unmatched tracks: ", unmatched_trks)
+            # print("________________________________________")
+
             for trk in self.trackers:
                 if (trk.get_id() not in unmatched_trks):
                     d = matched[np.where(matched[:, 1] == trk.get_id())[0], 0][0]
@@ -117,8 +124,8 @@ class OFISTObjectTrackingAPI:
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = KNNTracker(bboxes[i], f_vecs[i], self.frame_count)
-                print(trk.get_id())
+                trk = Tracker(bboxes[i], f_vecs[i], self.frame_count)
+                # print(trk.get_id())
                 self.trackers.append(trk)
 
         i = len(self.trackers)
@@ -149,6 +156,7 @@ class OFISTObjectTrackingAPI:
         # self.__encoder = ResNet50ExtractorAPI("", True)
         self.__encoder = MarsExtractorAPI(flush_pipe_on_read=True)
         self.__encoder.use_session_runner(session_runner)
+        self.__image_shape = self.__encoder.get_input_shape()
         self.__enc_in_pipe = self.__encoder.get_in_pipe()
         self.__enc_out_pipe = self.__encoder.get_out_pipe()
         self.__encoder.run()

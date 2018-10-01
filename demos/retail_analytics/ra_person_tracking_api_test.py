@@ -7,7 +7,7 @@ from data.obj_tracking.outputs import path as out_path
 from data.videos import path as videos_path
 from demos.retail_analytics.ra_person_tracking_api import RAPersonTrackingAPI
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
-    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
+    PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 from utils.video_writer import VideoWriter
@@ -15,7 +15,7 @@ from utils.video_writer import VideoWriter
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture(videos_path.get() + '/ra_rafee_cabin_1.mp4')
+cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
 # cap = cv2.VideoCapture(-1)
 while True:
     ret, image = cap.read()
@@ -30,7 +30,7 @@ detector_op = detector.get_out_pipe()
 detector.use_threading()
 detector.run()
 
-tracker = RAPersonTrackingAPI(input_path.get() + "/zones.csv", flush_pipe_on_read=True)
+tracker = RAPersonTrackingAPI(input_path.get() + "/zones.csv", flush_pipe_on_read=True, use_detection_mask=False)
 tracker.use_session_runner(session_runner)
 trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()

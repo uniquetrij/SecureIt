@@ -3,6 +3,7 @@ from threading import Thread
 import cv2
 import numpy as np
 
+from demos.retail_analytics.tracker import Tracker
 from demos.retail_analytics.tracker_knn import KNNTracker
 from demos.retail_analytics.zone import Zone
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
@@ -54,8 +55,8 @@ class RAPersonTrackingAPI:
 
         sx, sy, ex, ey = np.array(bbox).astype(np.int)
 
-        dx = ex - sx
-        dy = ey - sy
+        # dx = ex - sx
+        # dy = ey - sy
 
         # dx = int(.125*dx)
 
@@ -64,10 +65,10 @@ class RAPersonTrackingAPI:
 
         # dy = int(.25*dy)
 
-        # dx = 0
-        # dy = 0
+        dx = 0
+        dy = 0
 
-        image = image[sy:int(sy+dy/4), sx:ex]
+        image = image[sy:ey, sx:ex]
 
         # image = retinex.MSRCP(image, RAPersonTrackingAPI.retinex_conf['sigma_list'], RAPersonTrackingAPI.retinex_conf['low_clip'], RAPersonTrackingAPI.retinex_conf['high_clip'] )
 
@@ -123,7 +124,7 @@ class RAPersonTrackingAPI:
         bboxes = inference.get_meta_dict()['bboxes']
         self.frame_count += 1
 
-        matched, unmatched_dets, unmatched_trks = KNNTracker.associate_detections_to_trackers(f_vecs, self.trackers,
+        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
                                                                                               bboxes)
         if bboxes:
             # print("Unmatched dets: ", unmatched_dets)
@@ -142,7 +143,7 @@ class RAPersonTrackingAPI:
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = KNNTracker(self.__zones, bboxes[i], f_vecs[i], self.frame_count)
+                trk = Tracker(self.__zones, bboxes[i], f_vecs[i], self.frame_count)
                 # print(trk.get_id())
                 self.trackers.append(trk)
 
