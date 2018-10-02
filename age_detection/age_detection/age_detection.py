@@ -173,7 +173,7 @@ class AgeDetection(object):
             ret, image = cap.read()
             self.set_image(cv2.resize(image, (640, 360), interpolation=cv2.INTER_AREA))
             self.detect_face()
-            cv2.imshow('age detection',self.image_bounding_boxes)
+            cv2.imshow('age_detection detection',self.image_bounding_boxes)
             if cv2.waitKey(5) == 27:
                 break
         cap.release()

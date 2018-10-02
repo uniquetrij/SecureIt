@@ -7,6 +7,7 @@ from feature_extraction.mars_api.mars_api import MarsExtractorAPI
 from obj_tracking.ofist_api import retinex
 from obj_tracking.ofist_api.tracker import Tracker
 from obj_tracking.ofist_api.tracker_knn import KNNTracker
+from obj_tracking.ofist_api.zone import Zone
 from tf_session.tf_session_utils import Pipe, Inference
 import numpy as np
 
@@ -21,14 +22,14 @@ class OFISTObjectTrackingAPI:
         "low_clip": 0.01,
         "high_clip": 0.99
     }
-    def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False):
+    def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False, conf_path=None):
         self.max_age = max_age
         self.min_hits = min_hits
         self.trackers = []
         self.frame_count = 0
         self.__bg_frame = None
         self.__bg_gray = None
-
+        self.__conf_path = conf_path
         self.__flush_pipe_on_read = flush_pipe_on_read
 
         # self.__feature_dim = (128)
@@ -39,6 +40,9 @@ class OFISTObjectTrackingAPI:
         self.__out_pipe = Pipe(self.__out_pipe_process)
 
         self.__use_detection_mask = use_detection_mask
+        self.__zones = None
+        if self.__conf_path is not None:
+            self.__zones = Zone.create_zones_from_conf(self.__conf_path)
 
     number = 0
 
@@ -56,20 +60,19 @@ class OFISTObjectTrackingAPI:
         dy = 0
 
         image = image[sy:ey - dy, sx + dx:ex - dx]
+
+        image = retinex.MSRCP(image, OFISTObjectTrackingAPI.retinex_conf['sigma_list'],
+                              OFISTObjectTrackingAPI.retinex_conf['low_clip'],
+                              OFISTObjectTrackingAPI.retinex_conf['high_clip'])
         image = cv2.resize(image, tuple(patch_shape[::-1]))
 
         # img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
         # img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
         # image = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
 
-        image = retinex.MSRCP(image, OFISTObjectTrackingAPI.retinex_conf['sigma_list'],
-                              OFISTObjectTrackingAPI.retinex_conf['low_clip'],
-                              OFISTObjectTrackingAPI.retinex_conf['high_clip'])
         # image[0] = cv2.equalizeHist(image[0])
         # image[1] = cv2.equalizeHist(image[1])
         # image[2] = cv2.equalizeHist(image[2])
-
-
 
         return image
 
@@ -83,7 +86,7 @@ class OFISTObjectTrackingAPI:
 
         scores = i_dets.get_scores()
         for i in range(len(classes)):
-            if classes[i] == i_dets.get_category('person') and scores[i] > .985:
+            if classes[i] == i_dets.get_category('person') and scores[i] > .95:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
         patches = []
 
@@ -111,6 +114,7 @@ class OFISTObjectTrackingAPI:
         # print(f_vecs.shape)
         inference = inference.get_meta_dict()['inference']
         bboxes = inference.get_meta_dict()['bboxes']
+        patches = inference.get_data()
         self.frame_count += 1
 
         matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes)
@@ -132,27 +136,35 @@ class OFISTObjectTrackingAPI:
             for trk in self.trackers:
                 if (trk.get_id() not in unmatched_trks):
                     d = matched[np.where(matched[:, 1] == trk.get_id())[0], 0][0]
-                    trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
+                    trk.update(bboxes[d], f_vecs[d], patches[d]) ## for dlib re-intialize the trackers ?!
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = Tracker(bboxes[i], f_vecs[i], self.frame_count)
+                trk = Tracker(bboxes[i], f_vecs[i], patches[i], self.frame_count, zones= self.__zones)
                 # print(trk.get_id())
                 self.trackers.append(trk)
 
         i = len(self.trackers)
         ret = []
+        trails = {}
         for trk in reversed(self.trackers):
-            d = trk.get_bbox()
+            # d = trk.get_bbox()
             if (trk.get_hit_streak() >= self.min_hits):  # or self.frame_count <= self.min_hits):
-                ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1, -1))  # +1 as MOT benchmark requires positive
+                # ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1,
+                #                                                                     -1))  # +1 as MOT benchmark requires positive
+                ret.append(trk)
             i -= 1
             # remove dead tracklet
-            if (trk.get_time_since_update() > self.max_age or (self.frame_count - trk.get_creation_time() >= 30 and trk.get_hits() <= 2)):
+            if (trk.get_time_since_update() > self.max_age):
                 self.trackers.pop(i)
+            if self.frame_count - trk.get_creation_time() >= 30 and trk.get_hits() <= 2:
+                self.trackers.pop(i)
+            trails[trk.get_id()] = trk.get_trail()
+                #
+        inference.get_meta_dict()['trails'] = trails
 
         if (len(ret) > 0):
-            inference.set_result(np.concatenate(ret))
+            inference.set_result(ret)
         else:
             inference.set_result(np.empty((0, 5)))
         return inference
@@ -162,6 +174,9 @@ class OFISTObjectTrackingAPI:
 
     def get_out_pipe(self):
         return self.__out_pipe
+
+    def get_zones(self):
+        return self.__zones
 
     def use_session_runner(self, session_runner):
         self.__session_runner = session_runner

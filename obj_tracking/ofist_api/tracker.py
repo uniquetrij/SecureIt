@@ -4,6 +4,8 @@ import numpy as np
 from sklearn.utils.linear_assignment_ import linear_assignment
 from feature_comparator.siamese_api.siamese import SiameseComparator
 from data.feature_comparator.siamese_api.trained import path as model_path
+from obj_tracking.ofist_api.trail import Trail
+
 
 class Tracker(object):
 
@@ -14,7 +16,9 @@ class Tracker(object):
         Tracker.num_tracks += 1
         return Tracker.num_tracks
 
-    def __init__(self, bbox, features, frame_no, hit_streak_threshold = 10):
+    def __init__(self, bbox, features, patch, frame_no, hit_streak_threshold = 10, zones=None):
+        self.__zones = zones
+        self.__patches = [patch]
         self.__id = self.__get_next_id()
         self.__bbox = bbox
         self.__features_fixed = [features]
@@ -24,9 +28,14 @@ class Tracker(object):
         self.__hit_streak_threshold = hit_streak_threshold
         self.__hits = 1
         self.__creation_time = frame_no
+        self.__patch_update_timestamp = time.time()
+        self.__trail = Trail(self.__zones, self.__id)
 
     def get_creation_time(self):
         return self.__creation_time
+
+    def get_patches(self):
+        return self.__patches
 
     def get_hits(self):
         return self.__hits
@@ -46,18 +55,28 @@ class Tracker(object):
     def get_id(self):
         return self.__id
 
-    def update(self, bbox, f_vec):
+    def update(self, bbox, f_vec, patch):
+        timestamp = time.time()
         self.__hits += 1
         if len(self.__features_fixed) < 10:
             self.__features_fixed.append(f_vec)
-        # self.__features_update.append(f_vec)
-        # if len(self.__features_update) > 50:
-        #     self.__features_update.pop(0)
+        if timestamp - self.__patch_update_timestamp > 1:
+            self.__patches.append(patch)
+            self.__patch_update_timestamp = timestamp
+            if len(self.__patches) > 10:
+                self.__patches.pop(0)
+        self.__features_update.append(f_vec)
+        if len(self.__features_update) > 10:
+            self.__features_update.pop(0)
         self.__time_since_update = 0
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
 
         if bbox:
             self.__bbox = bbox
+            self.__trail.update_track(bbox)
+
+    def get_trail(self):
+        return self.__trail
 
     def get_hit_streak(self):
         return self.__hit_streak

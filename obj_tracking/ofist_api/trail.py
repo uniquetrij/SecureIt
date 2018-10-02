@@ -3,7 +3,7 @@ import time
 
 class Trail:
 
-    def __init__(self, zones, id):
+    def __init__(self, zones = None, id = None):
         self.__zones = zones
         self.__tracker_id = id
         self.__in_time = None
@@ -15,9 +15,13 @@ class Trail:
         self.__exit_threshold = 1
 
     def update_track(self, bbox):
-        self.__curr_zones = []
         timestamp = time.time()
+        self.__track.append((timestamp, bbox))
+        if self.__zones is not None:
+            self.__update_zone(bbox, timestamp)
 
+    def __update_zone(self, bbox, timestamp):
+        self.__curr_zones = []
         for zone in self.__zones:
             if zone.is_centroid_in_zone(bbox):
                 index = zone.get_id()
@@ -32,8 +36,6 @@ class Trail:
                         self.__exits[index].append(len(self.__track))
                     else:
                         self.__exits[index][-1] = len(self.__track)
-
-        self.__track.append((timestamp, bbox))
 
     def get_current_zones(self):
         return self.__curr_zones

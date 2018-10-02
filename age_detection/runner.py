@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0,"agr")
-from age_detection import age_detection_new
+from age_detection.age_detection import age_detection_new
 import os
 from moviepy.editor import VideoFileClip
 
@@ -28,4 +28,4 @@ class Runner:
 		return age_detection_new.AgeDetection.progress
 
 
-#main('age.mp4')
+#main('age_detection.mp4')

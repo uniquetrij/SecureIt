@@ -16,7 +16,7 @@ np.random.seed(2 ** 10)
 class WideResNet:
     '''
     Usage:
-    This Class By Default returns a model that can be loaded with pretrained weights and used to predict age and gender.
+    This Class By Default returns a model that can be loaded with pretrained weights and used to predict age_detection and gender.
     Use images with BGR color model as this the default pretrained model is trained on the same.
     WideResNet(image_size, *args)() will return the model.
     For Age and Gender only Mode: race and train_branch should be False

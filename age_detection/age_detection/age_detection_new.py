@@ -101,7 +101,7 @@ class AgeDetection(object):
     def detect_face(self):
 
         underage = 0
-        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
 #         faces = self.face_cascade.detectMultiScale(
 #             gray,
 #             scaleFactor=1.16,
@@ -163,7 +163,7 @@ class AgeDetection(object):
         return self.image_bounding_boxes
 
     def live_cv2(self):
-        video_capture = cv2.VideoCapture(0)
+        video_capture = cv2.VideoCapture(-1)
         while True:
             if not video_capture.isOpened():
                 sleep(5)
@@ -183,7 +183,7 @@ class AgeDetection(object):
             ret, image = cap.read()
             self.set_image(cv2.resize(image, (640, 360), interpolation=cv2.INTER_AREA))
             self.detect_face()
-            cv2.imshow('age detection',self.image_bounding_boxes)
+            cv2.imshow('age_detection detection',self.image_bounding_boxes)
             if cv2.waitKey(5) == 27:
                 break
         cap.release()
