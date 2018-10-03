@@ -2,6 +2,12 @@ import cv2
 import numpy as np
 
 class AgeInference(object):
+
+    '''
+    AgeInference class is to store the results of all faces present in a frame after processing it
+    through the age_api model.
+    '''
+
     ETHNICITY = {0: 'White', 1: 'Black', 2: 'Asian', 3: 'Indian', 4: 'Others'}
     def __init__(self, image, bboxes = None, ages = None, genders = None, ethnicity = None):
         self.__image = image
@@ -27,14 +33,23 @@ class AgeInference(object):
     def get_ethnicity(self):
         return self.__ethnicity
 
-    def get_annotated(self):
+    def get_annotated(self,):
+        '''
+        :return:Processed and annotated Image for display
+        '''
+        # temp = None
         for i, bbox in enumerate(self.__bboxes):
-            cv2.rectangle(self.__annotated_image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), self.__bbox_color, 2)
-            label = "{},{},{}".format(int(self.__ages[i]),
-                                      "F" if self.__genders[i][0] > 0.5 else "M", AgeInference.ETHNICITY[self.__ethnicity[i]])
-            self.draw_label( (self.__bboxes[i][0], self.__bboxes[i][1]), label)
-
+            self.__annotated_image = self.annotate(self.__annotated_image, bbox, self.__ages[i], self.__genders[i], self.__ethnicity[i])
         return self.__annotated_image
+
+    def annotate(self, image, bbox, age, gender, ethnicity):
+        cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), self.__bbox_color, 2)
+        label = "{},{},{}".format(int(age),
+                                  "F" if gender[0] > 0.5 else "M",
+                                  AgeInference.ETHNICITY[ethnicity])
+
+        image = AgeInference.draw_label(image, (int(bbox[0]), int(bbox[1])), label)
+        return image
 
     def set_bboxes(self, bboxes):
         self.__bboxes = bboxes
@@ -48,12 +63,12 @@ class AgeInference(object):
     def set_ethnicity(self, ethnicity):
         self.__ethnicity = ethnicity
 
-
-    def draw_label(self,point, label, font=cv2.FONT_HERSHEY_SIMPLEX,
+    @staticmethod
+    def draw_label(image, point, label, font=cv2.FONT_HERSHEY_SIMPLEX,
                    font_scale=1, thickness=2):
         size = cv2.getTextSize(label, font, font_scale, thickness)[0]
         x, y = point
-        cv2.rectangle(self.__annotated_image, (x, y - size[1]), (x + size[0], y), (255, 0, 0), cv2.FILLED)
-        cv2.putText(self.__annotated_image, label, point, font, font_scale, (255, 255, 255), thickness)
-
+        cv2.rectangle(image, (x, y - size[1]), (x + size[0], y), (255, 0, 0), cv2.FILLED)
+        cv2.putText(image, label, point, font, font_scale, (255, 255, 255), thickness)
+        return image
 

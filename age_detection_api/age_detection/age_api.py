@@ -1,5 +1,4 @@
 from threading import Thread
-
 from age_detection_api.utils.age_inference import AgeInference
 from age_detection_api.wide_resnet import WideResNet
 from mtcnn.mtcnn import MTCNN
@@ -9,18 +8,17 @@ from keras import backend as K
 import numpy as np
 import cv2
 from data.age_detection.trained import path as age_model_path
-
-
-
 class AgeDetection(object):
+
+    '''
+    Path to the trained model path for age_detection
+    '''
     WRN_WEIGHTS_PATH = age_model_path.get() + '/age_model.h5'
 
     def __init__(self, flush_pipe_on_read=False):
         self.__detector = MTCNN()
         self.__face_size = 64
-        # self.__age_model = AgeDetection()()
         self.__flush_pipe_on_read = flush_pipe_on_read
-
         self.__thread = None
         self.__in_pipe = Pipe(self.__in_pipe_process)
         self.__out_pipe = Pipe(self.__out_pipe_process)
@@ -60,6 +58,11 @@ class AgeDetection(object):
         return resized_img, (x_a, y_a, x_b - x_a, y_b - y_a)
 
     def __in_pipe_process(self, inference):
+        '''
+        :param inference: inference object with input frame
+        :return: inference: inference object with age_inference object containing face bbox details,
+                data condaining np_array of all faces detected
+        '''
         frame = inference.get_input()
         faces = self.__detector.detect_faces(frame)
         bboxes = []
@@ -77,6 +80,12 @@ class AgeDetection(object):
         return inference
 
     def __out_pipe_process(self, inference):
+        '''
+        :param inference: inference object with faces np array in data,
+                age_inference object with bboxes in result
+        :return: inference: inference object with age_inference object in result after processing
+                    face np array from data for age, gender and ethnicity
+        '''
         # placeholder for cropped faces
         results, inference = inference
         age_inference = inference.get_result()
@@ -128,6 +137,10 @@ class AgeDetection(object):
                 self.__in_pipe.wait()
 
     def __job(self, inference):
+        '''
+        :param inference: run the model on data from inference object and push it to out_pipe
+        :return:
+        '''
         try:
             self.__out_pipe.push((self.__model.predict(inference.get_data()), inference))
         except:
