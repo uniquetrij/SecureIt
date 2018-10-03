@@ -1,27 +1,34 @@
 """
 Face detection
 """
+import sys
+#sys.path.insert(0,"age_detection_api")
 import cv2
 import os
 import numpy as np
-from wide_resnet import WideResNet
+from age_detection_api.wide_resnet import WideResNet
 from keras.utils.data_utils import get_file
 import tensorflow as tf
 from random import randint
 import json
 from time import sleep
-import sys
-sys.path.insert(0,"/home/developer/agr-master/age_detection")
+from data.age_detection.trained import path as age_model_path
+from data.age_detection.inputs import path as haar_model_path
+import math
 from mtcnn.mtcnn import MTCNN
-detector = MTCNN()
+
 race_dict = {0:'White' , 1:'Black' , 2:'Asian' , 3:'Indian' , 4:'Others'}
 
 class AgeDetection(object):
     """
     Singleton class for face recongnition task
     """
-    CASE_PATH = r".\pretrained_models\haarcascade_frontalface_alt.xml"
-    WRN_WEIGHTS_PATH = r".\pretrained_models\model_new.h5"
+    frame = 0
+    max_frame = 0
+    progress = 0
+    CASE_PATH = haar_model_path.get() + '/haarcascade_frontalface_alt.xml'
+    WRN_WEIGHTS_PATH = age_model_path.get() + '/age_model.h5'
+    
 
     def __new__(cls, weight_file=None, depth=16, width=8, face_size=64, detect_size=25):
         if not hasattr(cls, 'instance'):
@@ -29,6 +36,7 @@ class AgeDetection(object):
         return cls.instance
 
     def __init__(self, depth=16, width=8, face_size=64, detect_size=25):
+        self.detector = MTCNN()
         self.face_size = face_size
         self.detect_size = detect_size
         self.model = WideResNet(face_size,  race=True, depth=depth, k=width)()
@@ -39,11 +47,11 @@ class AgeDetection(object):
         self.people_dict = {'total_people':[], 'people_under_age': [], 'people_of_age': []}
         if self.save_image_path not in os.listdir("."):
             os.mkdir(self.save_image_path)
-        model_dir = os.path.join(os.getcwd(), "pretrained_models").replace("//", "\\")
-        fpath = get_file('model_new.h5',
-                         self.WRN_WEIGHTS_PATH,
-                         cache_subdir=model_dir)
-        self.model.load_weights(fpath)
+        #model_dir = os.path.join(os.getcwd(), "pretrained_models").replace("//", "\\")
+        #fpath = get_file('model_new.h5',
+        #                 self.WRN_WEIGHTS_PATH,
+        #                 cache_subdir=model_dir)
+        self.model.load_weights(self.WRN_WEIGHTS_PATH)
         self.graph = tf.get_default_graph()
 
 
@@ -93,14 +101,14 @@ class AgeDetection(object):
     def detect_face(self):
 
         underage = 0
-        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        # gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
 #         faces = self.face_cascade.detectMultiScale(
 #             gray,
 #             scaleFactor=1.16,
 #             minNeighbors=5,
 #             minSize=(25, 25)
 #         )
-        faces = detector.detect_faces(self.image)
+        faces = self.detector.detect_faces(self.image)
         self.people_dict['total_people'].append(len(faces))
         # placeholder for cropped faces
         face_imgs = np.empty((len(faces), self.face_size, self.face_size, 3))
@@ -143,24 +151,26 @@ class AgeDetection(object):
         cv2.imwrite(img_path, image)
 
     def create_metadata(self):
-        with open('data_disp.json', 'w') as fp:
+        with open('data_disp.json', 'w+') as fp:
             json.dump(self.people_dict, fp)
 
     def pipeline(self, img):
+        AgeDetection.frame +=1
+        AgeDetection.progress = math.floor((AgeDetection.frame/AgeDetection.max_frame)*100) 
         # face_detect = FaceDetection(save_image_flag = False)
         self.set_image(cv2.resize(img, (640, 360), interpolation=cv2.INTER_AREA))
         self.detect_face()
         return self.image_bounding_boxes
 
     def live_cv2(self):
-        video_capture = cv2.VideoCapture(0)
+        video_capture = cv2.VideoCapture(-1)
         while True:
             if not video_capture.isOpened():
                 sleep(5)
             ret, image = video_capture.read()
             self.set_image(image)
             self.detect_face()
-            cv2.imshow('age_detection',self.image_bounding_boxes)
+            cv2.imshow('age_detection_api',self.image_bounding_boxes)
             if cv2.waitKey(5) == 27:
                 break
 
@@ -173,10 +183,22 @@ class AgeDetection(object):
             ret, image = cap.read()
             self.set_image(cv2.resize(image, (640, 360), interpolation=cv2.INTER_AREA))
             self.detect_face()
-            cv2.imshow('age_detection detection',self.image_bounding_boxes)
+            cv2.imshow('age_detection_api detection',self.image_bounding_boxes)
             if cv2.waitKey(5) == 27:
                 break
         cap.release()
         cv2.distroyAllWindows()
+
+    def reset_data(self):
+        self.people_dict['total_people'] = []
+        self.people_dict['people_under_age'] = []
+        self.people_dict['people_of_age'] = []
+
+
+
+
+
+    
+    
 
 

@@ -16,7 +16,7 @@ np.random.seed(2 ** 10)
 class WideResNet:
     '''
     Usage:
-    This Class By Default returns a model that can be loaded with pretrained weights and used to predict age_detection and gender.
+    This Class By Default returns a model that can be loaded with pretrained weights and used to predict age_detection_api and gender.
     Use images with BGR color model as this the default pretrained model is trained on the same.
     WideResNet(image_size, *args)() will return the model.
     For Age and Gender only Mode: race and train_branch should be False
@@ -149,7 +149,7 @@ class WideResNet:
         predictions_g = Dense(units=2, kernel_initializer=self._weight_init, use_bias=self._use_bias,
                               kernel_regularizer=l2(self._weight_decay), activation="softmax", name = 'gender_detection')(flatten)
         predictions_a = Dense(units=101, kernel_initializer=self._weight_init, use_bias=self._use_bias,
-                              kernel_regularizer=l2(self._weight_decay), activation="softmax", name = 'age_detection')(flatten)
+                              kernel_regularizer=l2(self._weight_decay), activation="softmax", name = 'age_detection_api')(flatten)
 
         self.__model = Model(inputs=inputs, outputs=[predictions_g, predictions_a])
 
@@ -162,6 +162,7 @@ class WideResNet:
                 self.__model.load_weights(self.AGE_GENDER_WEIGHTS)
             return self.__model
         self.create_parallel_model()
+
         return self.__model
 
 

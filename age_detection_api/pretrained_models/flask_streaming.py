@@ -1,5 +1,5 @@
 from flask import Flask,  Response, render_template
-from age_detection import age_detection
+from age_detection_api import age_detection
 import cv2
 import PIL
 

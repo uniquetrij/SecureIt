@@ -39,6 +39,7 @@ import tensorflow as tf
 from mtcnn.layer_factory import LayerFactory
 from mtcnn.network import Network
 from mtcnn.exceptions import InvalidImage
+from data.mtcnn.pretrained import path as npy_path
 
 __author__ = "Iván de Paz Centeno"
 
@@ -178,7 +179,8 @@ class MTCNN(object):
             steps_threshold = [0.6, 0.7, 0.7]
 
         if weights_file is None:
-            weights_file = pkg_resources.resource_stream('mtcnn', 'data/mtcnn_weights.npy')
+            # weights_file = pkg_resources.resource_stream('mtcnn', 'data/mtcnn_weights.npy')
+            weights_file = pkg_resources.resource_stream('data' ,'mtcnn/pretrained/mtcnn_weights.npy')
 
         self.__min_face_size = min_face_size
         self.__steps_threshold = steps_threshold
