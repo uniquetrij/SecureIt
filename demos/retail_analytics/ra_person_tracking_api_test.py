@@ -1,5 +1,6 @@
 import time
 from threading import Thread
+from demos.retail_analytics import multithreading as mlt
 
 import cv2
 import numpy as np
@@ -19,7 +20,7 @@ from utils.video_writer import VideoWriter
 session_runner = SessionRunner()
 session_runner.start()
 
-cap = cv2.VideoCapture(videos_path.get() + '/t_mobile_demo.mp4')
+cap = cv2.VideoCapture(videos_path.get() + '/ra_rafee_cabin_1.mp4')
 # cap = cv2.VideoCapture(-1)
 
 while True:
@@ -35,43 +36,31 @@ detector_op = detector.get_out_pipe()
 detector.use_threading()
 detector.run()
 
-tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False, conf_path=input_path.get() + "/t_mobile_demo_zones.csv")
+tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False, conf_path=input_path.get() + "/rafee_cabin_zones.csv")
 tracker.use_session_runner(session_runner)
 trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
 tracker.run()
 
+Thread(target=mlt.run).start()
+stock_image_in = mlt.image_in_pipe
+stock_zone_in = mlt.zone_detection_in_pipe
 
 def read():
-    # flir = FLIRCamera(0)
-    # flir_op = flir.get_out_pipe()
-    # flir.run()
-    count = 0
-
     while True:
-        count += 1
-        # flir_op.wait()
-        # ret, image = flir_op.pull()
-        # cv2.imshow("Flir Camera", frame)
-        # cv2.waitKey(1)
         ret, image = cap.read()
-        # if count == 100:
-        #     detector_ip.close()
-        # print("breaking...")
-        # trk_ip.close()
-        # break
         if not ret:
             continue
-        # image = cv2.resize(image,(image.shape[0]/2,image.shape[1]/2))
-        detector_ip.push(Inference(image.copy()))
-        # print('waiting')
+
+        image = image.copy()
+        stock_image_in.push(image)
+        # image = cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2)))
+        detector_ip.push(Inference(image))
         detector_op.wait()
-        # print('done')
         ret, inference = detector_op.pull()
         if ret:
             i_dets = inference.get_result()
             trk_ip.push(Inference(i_dets))
-        # sleep(0.1)
 
 
 t = Thread(target=read)
@@ -92,6 +81,7 @@ while True:
         frame = inference.get_input().get_image()
         patches = inference.get_data()
         # trails = inference.get_meta_dict()['trails']
+        zones = []
         for trk in trackers:
             d = trk.get_bbox()
             display = str(int(trk.get_id())) + " " + str([z.get_id() for z in trk.get_trail().get_current_zones()])
@@ -111,6 +101,9 @@ while True:
             # if zone is None and trail :
             #     print()
 
+            zones.extend(trk.get_trail().get_current_zones())
+        stock_zone_in.push(zones)
+
         overlay = frame.copy()
 
 
@@ -121,11 +114,13 @@ while True:
         frame = cv2.addWeighted(overlay, 0.3, frame, 0.7, 0)
 
         # # count+=1
-        video_writer.write(frame)
+        # video_writer.write(frame)
 
         # if patches:
         #     for i, patch in enumerate(patches):
         #         cv2.imshow("patch" + str(i), patch)
         #         cv2.waitKey(1)
+        # cv2.resize(frame, ())
+        frame = cv2.resize(frame, (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
         cv2.imshow("output", frame)
         cv2.waitKey(1)

@@ -56,13 +56,12 @@ class OFISTObjectTrackingAPI:
         image = image[sy:my + dy, mx - dx:mx + dx]
         # image = image[sy:ey, sx:ex]
 
-        image = ImageEnhancer.gaussian_blurr(image, sigma=2)
-        image = ImageEnhancer.lab_enhancement(image, l=0.75)
-        image = ImageEnhancer.hsv_enhancement(image, s=10, v=5)
-        image = ImageEnhancer.hls_enhancement(image, l=2)
-        image = ImageEnhancer.lab_enhancement(image, l=1.25)
-        image = ImageEnhancer.gamma_correction(image, gamma=3)
-
+        # image = ImageEnhancer.gaussian_blurr(image, sigma=1.75)
+        # image = ImageEnhancer.lab_enhancement(image, l=0.75)
+        # image = ImageEnhancer.hsv_enhancement(image, s=10, v=5)
+        # image = ImageEnhancer.hls_enhancement(image, l=2)
+        # image = ImageEnhancer.lab_enhancement(image, l=1.25)
+        # image = ImageEnhancer.gamma_correction(image, gamma=3)
         # image = ImageEnhancer.gaussian_blurr(image, sigma=1.1)
 
 
@@ -72,7 +71,7 @@ class OFISTObjectTrackingAPI:
         # image = ImageEnhancer.lab_enhancement(image, l=1.25)
         # image = ImageEnhancer.gamma_correction(image, gamma=3)
 
-        # image = ImageEnhancer.preprocess_retinex(image)
+        image = ImageEnhancer.preprocess_retinex(image)
 
         image = cv2.resize(image, tuple(patch_shape[::-1]))
 
