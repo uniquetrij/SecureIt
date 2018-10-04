@@ -52,10 +52,7 @@ class OFISTObjectTrackingAPI:
 
         dx = int(min(40, dx / 2))
         dy = int(min(50, dy / 2))
-
-        image = image[sy:my + dy, mx - dx:mx + dx]
-        # image = image[sy:ey, sx:ex]
-
+        # image = image[sy:my + dy, mx - dx:mx + dx]
         # image = ImageEnhancer.gaussian_blurr(image, sigma=1.75)
         # image = ImageEnhancer.lab_enhancement(image, l=0.75)
         # image = ImageEnhancer.hsv_enhancement(image, s=10, v=5)
@@ -64,6 +61,19 @@ class OFISTObjectTrackingAPI:
         # image = ImageEnhancer.gamma_correction(image, gamma=3)
         # image = ImageEnhancer.gaussian_blurr(image, sigma=1.1)
 
+        # dx = int(min(60, dx / 2))
+        # dy = int(min(90, dy / 2))
+        image = image[sy:my + dy, mx - dx:mx + dx]
+        image = ImageEnhancer.gaussian_blurr(image, sigma=1.75)
+        image = ImageEnhancer.lab_enhancement(image, l=0.125)
+        image = ImageEnhancer.hsv_enhancement(image, s=5, v=5)
+        image = ImageEnhancer.hls_enhancement(image, l=2)
+        # image = ImageEnhancer.lab_enhancement(image, l=1)
+        # image = ImageEnhancer.gamma_correction(image, gamma=3)
+        image = ImageEnhancer.gaussian_blurr(image, sigma=1.25)
+
+        # image = image[sy:ey, sx:ex]
+
 
         # image = ImageEnhancer.gaussian_blurr(image, sigma=2)
         # image = ImageEnhancer.lab_enhancement(image, l=0.75)
@@ -71,7 +81,7 @@ class OFISTObjectTrackingAPI:
         # image = ImageEnhancer.lab_enhancement(image, l=1.25)
         # image = ImageEnhancer.gamma_correction(image, gamma=3)
 
-        image = ImageEnhancer.preprocess_retinex(image)
+        # image = ImageEnhancer.preprocess_retinex(image)
 
         image = cv2.resize(image, tuple(patch_shape[::-1]))
 
@@ -87,7 +97,7 @@ class OFISTObjectTrackingAPI:
 
         scores = i_dets.get_scores()
         for i in range(len(classes)):
-            if classes[i] == i_dets.get_category('person') and scores[i] > .985:
+            if classes[i] == i_dets.get_category('person') and scores[i] > .95:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
         patches = [0 for x in bboxes]
         # flips = [0 for x in bboxes]
