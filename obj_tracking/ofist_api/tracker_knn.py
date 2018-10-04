@@ -1,9 +1,10 @@
+import time
+
 import numpy as np
 
 
 from obj_tracking.ofist_api.knn_detector import KnnDetector, DistanceMetric
-
-
+from obj_tracking.ofist_api.trail import Trail
 
 
 class KNNTracker(object):
@@ -14,7 +15,8 @@ class KNNTracker(object):
         KNNTracker.num_tracks += 1
         return KNNTracker.num_tracks
 
-    def __init__(self, bbox, features, frame_no, hit_streak_threshold=10):
+    def __init__(self, bbox, features, patch, frame_no, hit_streak_threshold=10, zones = None):
+        self.__zones = zones
         self.__id = self.__get_next_id()
         self.__s_id = None
         self.__bbox = bbox
@@ -25,6 +27,12 @@ class KNNTracker(object):
         self.__hit_streak_threshold = hit_streak_threshold
         self.__hits = 1
         self.__creation_time = frame_no
+        self.__patch_update_timestamp = time.time()
+        self.__patches = [patch]
+        self.__trail = Trail(self.__zones, self.__id)
+
+    def get_patches(self):
+        return self.__patches
 
 
     def get_creation_time(self):
@@ -54,18 +62,38 @@ class KNNTracker(object):
     def get_hits(self):
         return self.__hits
 
-    def update(self, bbox, f_vec):
-        self.__hits+=1
-        if len(self.__features_fixed) < 50:
-            self.__features_fixed.append(f_vec)
-        self.__features_update.append(f_vec)
-        if len(self.__features_update) > 50:
-            self.__features_update.pop(0)
+    def is_confident(self):
+        return self.__hits > 20
+
+    def get_trail(self):
+        return self.__trail
+
+    def get_hit_streak(self):
+        return self.__hit_streak
+
+    def update(self, bbox, f_vec, patch):
+        timestamp = time.time()
+        self.__hits += 1
+        if timestamp - self.__patch_update_timestamp > 1:
+            if len(self.__features_fixed) < 50:
+                self.__features_fixed.append(f_vec)
+            self.__patches.append(patch)
+
+            self.__patch_update_timestamp = timestamp
+            if len(self.__patches) > 10:
+                self.__patches.pop(0)
+
+            if len(self.__features_fixed) > 50:
+                self.__features_update.append(f_vec)
+                if len(self.__features_update) > 50:
+                    self.__features_update.pop(0)
+
         self.__time_since_update = 0
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
 
         if bbox:
             self.__bbox = bbox
+            self.__trail.update_track(bbox)
 
     def get_hit_streak(self):
         return self.__hit_streak
@@ -80,7 +108,7 @@ class KNNTracker(object):
         return X, y
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.25):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, distance_threshold=0.3):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -103,7 +131,7 @@ class KNNTracker(object):
             #     10, 1)
             # predictor.update(X, Y)
             predictor.update(X, Y)
-            eu = predictor.observe(f_vec, distance_metric=DistanceMetric.cosine_distance).obtain(1)
+            predictor.observe(f_vec, distance_metric=DistanceMetric.cosine_distance).obtain(1)
             id1, count1, distance1, _, _ = predictor.get(1)
             try:
                 id2, count2, distance2, _, _ = predictor.get(2)

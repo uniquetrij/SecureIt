@@ -1,10 +1,12 @@
+import random
 from threading import Thread
 
 import cv2
 
 from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
-from obj_tracking.ofist_api import retinex
+from obj_tracking.ofist_api import retinex, enhancer
+from obj_tracking.ofist_api.enhancer import ImageEnhancer
 from obj_tracking.ofist_api.tracker import Tracker
 from obj_tracking.ofist_api.tracker_knn import KNNTracker
 from obj_tracking.ofist_api.zone import Zone
@@ -13,15 +15,7 @@ import numpy as np
 
 
 class OFISTObjectTrackingAPI:
-    retinex_conf = {
-        "sigma_list": [15, 80, 250],
-        "G": 5.0,
-        "b": 25.0,
-        "alpha": 125.0,
-        "beta": 46.0,
-        "low_clip": 0.01,
-        "high_clip": 0.99
-    }
+
     def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False, conf_path=None):
         self.max_age = max_age
         self.min_hits = min_hits
@@ -50,29 +44,37 @@ class OFISTObjectTrackingAPI:
 
         sx, sy, ex, ey = np.array(bbox).astype(np.int)
 
-        # dx = ex-sx
-        # dx = int(.25*dx)
+        dx = ex - sx
+        dy = ey - sy
 
-        # dy = ey-sy
-        # dy = int(.6*dy)
+        mx = int((sx + ex) / 2)
+        my = int((sy + ey) / 2)
 
-        dx = 0
-        dy = 0
+        dx = int(min(40, dx / 2))
+        dy = int(min(50, dy / 2))
 
-        image = image[sy:ey - dy, sx + dx:ex - dx]
+        image = image[sy:my + dy, mx - dx:mx + dx]
+        # image = image[sy:ey, sx:ex]
 
-        image = retinex.MSRCP(image, OFISTObjectTrackingAPI.retinex_conf['sigma_list'],
-                              OFISTObjectTrackingAPI.retinex_conf['low_clip'],
-                              OFISTObjectTrackingAPI.retinex_conf['high_clip'])
+        image = ImageEnhancer.gaussian_blurr(image, sigma=2)
+        image = ImageEnhancer.lab_enhancement(image, l=0.75)
+        image = ImageEnhancer.hsv_enhancement(image, s=10, v=5)
+        image = ImageEnhancer.hls_enhancement(image, l=2)
+        image = ImageEnhancer.lab_enhancement(image, l=1.25)
+        image = ImageEnhancer.gamma_correction(image, gamma=3)
+
+        # image = ImageEnhancer.gaussian_blurr(image, sigma=1.1)
+
+
+        # image = ImageEnhancer.gaussian_blurr(image, sigma=2)
+        # image = ImageEnhancer.lab_enhancement(image, l=0.75)
+        # image = ImageEnhancer.hsv_enhancement(image, s=3, v=2)
+        # image = ImageEnhancer.lab_enhancement(image, l=1.25)
+        # image = ImageEnhancer.gamma_correction(image, gamma=3)
+
+        # image = ImageEnhancer.preprocess_retinex(image)
+
         image = cv2.resize(image, tuple(patch_shape[::-1]))
-
-        # img_yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-        # img_yuv[:, :, 0] = cv2.equalizeHist(img_yuv[:, :, 0])
-        # image = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
-
-        # image[0] = cv2.equalizeHist(image[0])
-        # image[1] = cv2.equalizeHist(image[1])
-        # image[2] = cv2.equalizeHist(image[2])
 
         return image
 
@@ -86,9 +88,11 @@ class OFISTObjectTrackingAPI:
 
         scores = i_dets.get_scores()
         for i in range(len(classes)):
-            if classes[i] == i_dets.get_category('person') and scores[i] > .95:
+            if classes[i] == i_dets.get_category('person') and scores[i] > .985:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
-        patches = []
+        patches = [0 for x in bboxes]
+        # flips = [0 for x in bboxes]
+        threads = []
 
         for i in range(len(bboxes)):
             box = bboxes[i]
@@ -98,11 +102,23 @@ class OFISTObjectTrackingAPI:
                 image = np.multiply(frame, mask)
             else:
                 image = frame
-            patch = self.__extract_image_patch(image, box, self.__image_shape[:2])
-            if patch is None:
-                print("WARNING: Failed to extract image patch: %s." % str(box))
-                patch = np.random.uniform(0., 255., self.__image_shape).astype(np.uint8)
-            patches.append(patch)
+
+            def exec(patches, index):
+                index = i
+                patch = self.__extract_image_patch(image, box, self.__image_shape[:2])
+                if patch is None:
+                    print("WARNING: Failed to extract image patch: %s." % str(box))
+                    patch = np.random.uniform(0., 255., self.__image_shape).astype(np.uint8)
+                if bool(random.getrandbits(1)):
+                    patches[index] = patch
+                else:
+                    patches[index] = cv2.flip(patch,1)
+
+            threads.append(Thread(target=exec, args=(patches,i, )))
+            threads[-1].start()
+
+        for thread in threads:
+            thread.join()
 
         inference.set_data(patches)
         inference.get_meta_dict()['bboxes'] = bboxes
@@ -110,57 +126,38 @@ class OFISTObjectTrackingAPI:
 
     def __out_pipe_process(self, inference):
         f_vecs = inference.get_result()
-
-        # print(f_vecs.shape)
         inference = inference.get_meta_dict()['inference']
         bboxes = inference.get_meta_dict()['bboxes']
         patches = inference.get_data()
         self.frame_count += 1
 
-        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers, bboxes)
+        matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
+                                                                                           bboxes)
+
         if bboxes:
-
-            # # update matched trackers with assigned detections
-            # for t, trk in enumerate(self.trackers):
-            #     if (t not in unmatched_trks):
-            #         d = matched[np.where(matched[:, 1] == t)[0], 0][0]
-            #         trk.update(bboxes[d], f_vecs[d])  ## for dlib re-intialize the trackers ?!
-
-            # update matched trackers with assigned detections
-            # print("Num dets: ", len(bboxes))
-            # print("Matched indices: ",matched)
-            # print("Unmatched dets: ", unmatched_dets)
-            # print("Unmatched tracks: ", unmatched_trks)
-            # print("________________________________________")
-
             for trk in self.trackers:
                 if (trk.get_id() not in unmatched_trks):
                     d = matched[np.where(matched[:, 1] == trk.get_id())[0], 0][0]
-                    trk.update(bboxes[d], f_vecs[d], patches[d]) ## for dlib re-intialize the trackers ?!
+                    trk.update(bboxes[d], f_vecs[d], patches[d])
 
-            # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                trk = Tracker(bboxes[i], f_vecs[i], patches[i], self.frame_count, zones= self.__zones)
-                # print(trk.get_id())
+                trk = Tracker(bboxes[i], f_vecs[i], patches[i], self.frame_count, zones=self.__zones)
                 self.trackers.append(trk)
 
         i = len(self.trackers)
         ret = []
         trails = {}
         for trk in reversed(self.trackers):
-            # d = trk.get_bbox()
             if (trk.get_hit_streak() >= self.min_hits):  # or self.frame_count <= self.min_hits):
-                # ret.append(np.concatenate(([int(i) for i in d], [trk.get_id()])).reshape(1,
-                #                                                                     -1))  # +1 as MOT benchmark requires positive
                 ret.append(trk)
             i -= 1
-            # remove dead tracklet
+
             if (trk.get_time_since_update() > self.max_age):
                 self.trackers.pop(i)
-            if self.frame_count - trk.get_creation_time() >= 30 and trk.get_hits() <= 2:
+            if self.frame_count - trk.get_creation_time() >= 30 and not trk.is_confident():
                 self.trackers.pop(i)
             trails[trk.get_id()] = trk.get_trail()
-                #
+            #
         inference.get_meta_dict()['trails'] = trails
 
         if (len(ret) > 0):

@@ -1,3 +1,4 @@
+import cv2
 import time
 
 import numpy as np
@@ -8,7 +9,6 @@ from obj_tracking.ofist_api.trail import Trail
 
 
 class Tracker(object):
-
     num_tracks = 0
 
     @staticmethod
@@ -16,13 +16,13 @@ class Tracker(object):
         Tracker.num_tracks += 1
         return Tracker.num_tracks
 
-    def __init__(self, bbox, features, patch, frame_no, hit_streak_threshold = 10, zones=None):
+    def __init__(self, bbox, features, patch, frame_no, hit_streak_threshold=10, zones=None):
         self.__zones = zones
         self.__patches = [patch]
         self.__id = self.__get_next_id()
         self.__bbox = bbox
         self.__features_fixed = [features]
-        self.__features_update = [features]
+        self.__features_update = []
         self.__hit_streak = 0
         self.__time_since_update = 0
         self.__hit_streak_threshold = hit_streak_threshold
@@ -55,19 +55,26 @@ class Tracker(object):
     def get_id(self):
         return self.__id
 
+    def is_confident(self):
+        return self.__hits > 20
+
     def update(self, bbox, f_vec, patch):
         timestamp = time.time()
         self.__hits += 1
-        if len(self.__features_fixed) < 10:
-            self.__features_fixed.append(f_vec)
         if timestamp - self.__patch_update_timestamp > 1:
+            if len(self.__features_fixed) < 50:
+                self.__features_fixed.append(f_vec)
             self.__patches.append(patch)
+
             self.__patch_update_timestamp = timestamp
             if len(self.__patches) > 10:
                 self.__patches.pop(0)
-        self.__features_update.append(f_vec)
-        if len(self.__features_update) > 10:
-            self.__features_update.pop(0)
+
+            if len(self.__features_fixed) > 50:
+                self.__features_update.append(f_vec)
+                if len(self.__features_update) > 50:
+                    self.__features_update.pop(0)
+
         self.__time_since_update = 0
         self.__hit_streak = min(self.__hit_streak_threshold, self.__hit_streak + 1)
 
@@ -82,7 +89,7 @@ class Tracker(object):
         return self.__hit_streak
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, similarity_threshold=0.65):
+    def associate_detections_to_trackers(f_vecs, trackers, bboxes, min_similarity_threshold=0.65):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -122,7 +129,7 @@ class Tracker(object):
             if (t not in matched_indices[:, 1]):
                 # print("Unmatched Tracker: ", t, trackers[t].get_id())
                 unmatched_trackers.append(trackers[t].get_id())
-                trk.__hit_streak = max(0, trk.__hit_streak-1)
+                trk.__hit_streak = max(0, trk.__hit_streak - 1)
                 trk.__time_since_update += 1
 
         # filter out matched with low IOU
@@ -130,7 +137,7 @@ class Tracker(object):
         for m in matched_indices:
             trk_index = m[1]
             trk_id = trackers[trk_index].get_id()
-            if (similarity_matrix[m[0], m[1]] < similarity_threshold):
+            if (similarity_matrix[m[0], m[1]] < min_similarity_threshold):
                 unmatched_detections.append(m[0])
                 unmatched_trackers.append(trk_id)
                 # print("Unmatched Tracker ID: ", trk_id)
@@ -150,7 +157,7 @@ class Tracker(object):
     def get_cosine_similarity(tracker, f_vec):
         maximum = 0
         lst = tracker.get_features()
-        for a in  lst:
+        for a in lst:
             b = f_vec
             a = np.expand_dims(a, axis=0)
             b = np.expand_dims(b, axis=0)
@@ -160,9 +167,10 @@ class Tracker(object):
         return maximum
 
     __siamese_model = None
+
     @staticmethod
-    def siamese_comparator( tracker, f_vec, graph):
-        if not  Tracker.__siamese_model:
+    def siamese_comparator(tracker, f_vec, graph):
+        if not Tracker.__siamese_model:
             print("Initializing...")
             with graph.as_default():
                 Tracker.__siamese_model = SiameseComparator()()
@@ -179,4 +187,4 @@ class Tracker(object):
             # a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
             # b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
             maximum += Tracker.__siamese_model.predict([a, b])[0][0]
-        return maximum/len(lst)
+        return maximum / len(lst)

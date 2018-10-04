@@ -1,3 +1,4 @@
+import time
 from threading import Thread
 
 import cv2
@@ -26,21 +27,15 @@ while True:
     if ret:
         break
 
-
-
-
-
-
-
 # detector =  YOLOObjectDetectionAPI('yolo_api', True)
-detector = TFObjectDetectionAPI(PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
+detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
 detector.use_session_runner(session_runner)
 detector_ip = detector.get_in_pipe()
 detector_op = detector.get_out_pipe()
 detector.use_threading()
 detector.run()
 
-tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=True, conf_path=input_path.get() + "/t_mobile_demo_zones.csv")
+tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False, conf_path=input_path.get() + "/t_mobile_demo_zones.csv")
 tracker.use_session_runner(session_runner)
 trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
@@ -82,7 +77,7 @@ def read():
 t = Thread(target=read)
 t.start()
 
-video_writer = VideoWriter(out_path.get() + "/t_mobile_demo_out_3.avi", image.shape[1], image.shape[0], 25)
+video_writer = VideoWriter(out_path.get() + "/t_mobile_demo_out_{}.avi".format(time.strftime('%Y_%m_%d_%H_%M')), image.shape[1], image.shape[0], 25)
 
 while True:
     # print(detector_op.is_closed())

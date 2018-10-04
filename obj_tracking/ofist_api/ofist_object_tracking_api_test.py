@@ -19,26 +19,27 @@ session_runner = SessionRunner()
 session_runner.start()
 
 cap = cv2.VideoCapture(videos_path.get() + '/t_mobile_demo.mp4')
+# cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
 # cap = cv2.VideoCapture(-1)
-count = 1100
+seek = 1200
 
 while True:
     ret, image = cap.read()
     if ret:
-        if count == 0:
+        if seek == 0:
             break
-        count-=1
+        seek-=1
 
 
 # detector =  YOLOObjectDetectionAPI('yolo_api', True)
-detector = TFObjectDetectionAPI(PRETRAINED_mask_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
+detector = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, image.shape, 'tf_api', True)
 detector.use_session_runner(session_runner)
 detector_ip = detector.get_in_pipe()
 detector_op = detector.get_out_pipe()
 detector.use_threading()
 detector.run()
 
-tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=True)
+tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False)
 tracker.use_session_runner(session_runner)
 trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
@@ -70,7 +71,7 @@ def read():
 t = Thread(target=read)
 t.start()
 
-video_writer = VideoWriter(out_path.get()+"/t_mobile_demo_out2.avi",image.shape[1], image.shape[0], 25)
+video_writer = VideoWriter(out_path.get()+"/t_mobile_demo_out_4.avi",image.shape[1], image.shape[0], 25)
 
 while True:
     # print(detector_op.is_closed())
@@ -85,6 +86,8 @@ while True:
         frame = inference.get_input().get_image()
 
         for trk in trackers:
+            if not trk.is_confident():
+                continue
             l = len(str(trk.get_id()))
             d = trk.get_bbox()
             cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[2]), int(d[3])), (0, 255, 0), 1)
