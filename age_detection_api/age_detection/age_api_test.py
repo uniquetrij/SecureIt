@@ -1,13 +1,12 @@
 import time
 from threading import Thread
-
 import cv2
-
 from age_detection_api.age_detection.age_api import AgeDetection
 from age_detection_api.age_detection.sort import Sort
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 import numpy as np
+
 
 cap = cv2.VideoCapture(-1)
 # cap = cv2.VideoCapture(videos_path.get()+'/Hitman Agent 47 - car chase scene HD.mp4')
@@ -64,3 +63,5 @@ while True:
         frame_no += 1
         cv2.imshow("Final Output", frame)
         cv2.waitKey(1)
+
+

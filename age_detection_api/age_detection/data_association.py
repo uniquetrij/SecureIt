@@ -10,11 +10,9 @@ see https://github.com/nwojke/deep_sort
 """
 
 import numpy as np
-from numba import jit
 from sklearn.utils.linear_assignment_ import linear_assignment
 
 
-@jit
 def iou(bb_test,bb_gt):
   """
   Computes IUO between two bboxes in the form [x1,y1,x2,y2]

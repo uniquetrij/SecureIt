@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 from threading import Thread
 from demos.retail_analytics import multithreading as mlt
+from age_detection_api.age_detection import age_api_runner
 
 import cv2
 import numpy as np
@@ -44,12 +45,13 @@ trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
 tracker.run()
 
-
-
 Thread(target=mlt.run).start()
 stock_image_in = mlt.image_in_pipe
 stock_zone_in = mlt.zone_detection_in_pipe
 tracking_in_pipe = mlt.tracking_in_pipe
+
+# age_in_pipe = mlt.age_in_pipe
+# age_api_runner.runner(age_in_pipe,  cam_id=-1)
 
 def read():
     while True:

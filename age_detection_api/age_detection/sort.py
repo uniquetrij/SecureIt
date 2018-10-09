@@ -57,7 +57,7 @@ class Sort:
                 trk = KalmanBoxTracker(bboxes[i], ages[i], genders[i], ethnicity[i], face)
                 self.trackers.append(trk)
         i = len(self.trackers)
-        print("No. Of People Detected in frame{}".format(i) )
+        # print("No. Of People Detected in frame{}".format(i) )
         for trk in reversed(self.trackers):
             d = trk.get_state()
             if trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits:

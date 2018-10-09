@@ -317,8 +317,19 @@ class Pipeline():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', image)[1].tostring() + b'\r\n')
 
+    def gen_age_api(self):
+        while True:
+            age_in_pipe.wait()
+            ret, image = age_in_pipe.pull()
+            if not ret:
+                continue
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', image)[1].tostring() + b'\r\n')
+
+
 image_in_pipe = Pipe()
 tracking_in_pipe = Pipe()
+age_in_pipe = Pipe()
 zone_detection_in_pipe = Pipe()
 object_retail=Pipeline()
 
@@ -332,6 +343,10 @@ def live_tracking_feed():
     return Response(object_retail.gen_tracking(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+# @app.route('/live_age_feed')
+# def live_age_feed():
+#     return Response(object_retail.gen_age_api(),
+#                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 def run():
