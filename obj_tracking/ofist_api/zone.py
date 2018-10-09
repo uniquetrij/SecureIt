@@ -17,6 +17,11 @@ class Zone:
     def is_centroid_in_zone(self, bbox):
         return self.is_in_zone(Zone.find_centroid(bbox))
 
+    def is_bbox_in_zone(self, bbox):
+        return self.is_in_zone((bbox[0], bbox[1])) or self.is_in_zone((bbox[2], bbox[1])) or \
+               self.is_in_zone((bbox[2], bbox[3])) or self.is_in_zone((bbox[0], bbox[3])) or \
+               self.is_centroid_in_zone(bbox)
+
     def get_id(self):
         return self.__id
 

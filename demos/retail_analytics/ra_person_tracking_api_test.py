@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from threading import Thread
 from demos.retail_analytics import multithreading as mlt
 
@@ -17,6 +18,7 @@ from utils.video_writer import VideoWriter
 
 # from camera_interface.flir_api.flir_camera import FLIRCamera
 
+URL = 'https://us-central1-retailanalytics-d6ccf.cloudfunctions.net/api/zonetracking'
 session_runner = SessionRunner()
 session_runner.start()
 
@@ -42,9 +44,12 @@ trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
 tracker.run()
 
+
+
 Thread(target=mlt.run).start()
 stock_image_in = mlt.image_in_pipe
 stock_zone_in = mlt.zone_detection_in_pipe
+tracking_in_pipe = mlt.tracking_in_pipe
 
 def read():
     while True:
@@ -82,17 +87,18 @@ while True:
         patches = inference.get_data()
         # trails = inference.get_meta_dict()['trails']
         zones = []
+        payload = []
         for trk in trackers:
             d = trk.get_bbox()
             display = str(int(trk.get_id())) + " " + str([z.get_id() for z in trk.get_trail().get_current_zones()])
             l = len(display)
-            cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[2]), int(d[3])), (0, 255, 0), 1)
+            cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[2]), int(d[3])), (0, 255, 0), 3)
 
-            cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[0]) + 5 + (10 * l), int(d[1]) + 15), (0, 69, 255),
+            cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[0]) + 10 + (15 * l), int(d[1]) + 35), (0, 69, 255),
                           thickness=cv2.FILLED)
 
-            cv2.putText(frame, display, (int(d[0]) + 2, int(d[1]) + 13), cv2.FONT_HERSHEY_PLAIN, 1,
-                        (255, 255, 255), thickness=1)
+            cv2.putText(frame, display, (int(d[0]) + 2, int(d[1]) + 25), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 255), thickness=3)
 
             # print(trk.get_id(), [z.get_id() for z in trk.get_trail().get_current_zones()])
 
@@ -100,6 +106,24 @@ while True:
             # zone = trail.get_zone()
             # if zone is None and trail :
             #     print()
+
+            trail = trk.get_trail()
+            exited_zones = trail.get_exited_zones()
+            exit_zone = {}
+            for zone in exited_zones:
+                exit_time = trail.get_exit(zone.get_id())
+                entry_time = trail.get_entry(zone.get_id())
+                exit_time_str = datetime.fromtimestamp(entry_time).strftime('%Y:%m:%d:%H:%M:%S')
+                entry_time_str = datetime.fromtimestamp(entry_time).strftime('%Y:%m:%d:%H:%M:%S')
+                exit_zone['rack_id'] = zone.get_id()
+                exit_zone['person_id'] = trk.get_id()
+                exit_zone['entry_time'] = entry_time_str
+                exit_zone['exit_time'] = exit_time_str
+                if exit_time - entry_time > 10:
+                    # req = requests.post(URL, json=exit_zone)
+                    # print(req)
+                    payload.append(exit_zone)
+                    print(exit_zone)
 
             zones.extend(trk.get_trail().get_current_zones())
         stock_zone_in.push(zones)
@@ -121,6 +145,7 @@ while True:
         #         cv2.imshow("patch" + str(i), patch)
         #         cv2.waitKey(1)
         # cv2.resize(frame, ())
-        frame = cv2.resize(frame, (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
-        cv2.imshow("output", frame)
-        cv2.waitKey(1)
+        tracking_in_pipe.push(frame)
+        # frame = cv2.resize(frame, (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+        # cv2.imshow("output", frame)
+        # cv2.waitKey(1)

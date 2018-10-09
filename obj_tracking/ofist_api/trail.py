@@ -7,7 +7,7 @@ class Trail:
         self.__zones = zones
         self.__tracker_id = id
         self.__in_time = None
-        self.__prev_zone = None
+        self.__prev_zones = []
         self.__regions = []
         self.__track = []
         self.__entries = {}
@@ -23,7 +23,7 @@ class Trail:
     def __update_zone(self, bbox, timestamp):
         self.__curr_zones = []
         for zone in self.__zones:
-            if zone.is_centroid_in_zone(bbox):
+            if zone.is_bbox_in_zone(bbox):
                 index = zone.get_id()
                 self.__curr_zones.append(zone)
                 if index not in self.__entries:
@@ -42,3 +42,18 @@ class Trail:
 
     def get_trail(self):
         return self.__track
+
+    def get_exited_zones(self):
+        exited_zones = []
+        for zone in self.__prev_zones:
+            if zone not in self.__curr_zones:
+                exited_zones.append(zone)
+
+        self.__prev_zones = self.__curr_zones
+        return exited_zones
+
+    def get_exit(self, zone_id):
+        return self.__track[self.__exits[zone_id][-1]][0]
+
+    def get_entry(self, zone_id):
+        return self.__track[self.__entries[zone_id][-1]][0]
