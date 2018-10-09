@@ -4,7 +4,7 @@ Face detection
 import cv2
 import os
 import numpy as np
-from wide_resnet import WideResNet
+# from wide_resnet import WideResNet
 from keras.utils.data_utils import get_file
 import tensorflow as tf
 from random import randint

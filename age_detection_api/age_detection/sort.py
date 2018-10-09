@@ -1,5 +1,10 @@
 from __future__ import print_function
+
+import json
+import time
+
 import numpy as np
+import requests
 
 from age_detection_api.age_detection.data_association import associate_detections_to_trackers
 from age_detection_api.age_detection.kalman_tracker import KalmanBoxTracker
@@ -7,7 +12,7 @@ from age_detection_api.age_detection.kalman_tracker import KalmanBoxTracker
 
 class Sort:
 
-    def __init__(self,max_age=100,min_hits=3):
+    def __init__(self,max_age=100,min_hits=10):
         """
         Sets key parameters for SORT
         """
@@ -16,7 +21,7 @@ class Sort:
         self.trackers = []
         self.frame_count = 0
 
-    def update(self, det, img=None):
+    def update(self, det):
         self.frame_count += 1
         trks = np.zeros((len(self.trackers),5))
 
@@ -48,22 +53,47 @@ class Sort:
 
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
-                # print(bboxes[i])
-                # print(ages[i])
-                # print(genders[i])
-                # print(ethnicity[i])
-                trk = KalmanBoxTracker(bboxes[i], ages[i], genders[i], ethnicity[i])
+                face = det.get_crop(bboxes[i])
+                trk = KalmanBoxTracker(bboxes[i], ages[i], genders[i], ethnicity[i], face)
                 self.trackers.append(trk)
         i = len(self.trackers)
         print("No. Of People Detected in frame{}".format(i) )
         for trk in reversed(self.trackers):
             d = trk.get_state()
-            if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
+            if trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits:
                 ret.append(trk) # +1 as MOT benchmark requires positive
+                bbox = trk.get_state()
+                # ToDo Handle Face None condition
+                # face = det.get_crop(bbox)
+                # trk.set_face(face)
             i -= 1
             #remove dead tracklet
             if trk.time_since_update > self.max_age:
-                self.trackers.pop(i)
+                curr = self.trackers.pop(i)
+                _visibility = curr.get_visibility()
+                _genders = gender = np.average(np.array(curr.get_genders()), axis=0)
+                _ages = curr.get_ages()
+                url = 'https://us-central1-retailanalytics-d6ccf.cloudfunctions.net/api/persontracking/'
+                if ((_visibility) > 15):
+                    face = trk.get_face()
+                    out_dict = {
+                        'serialNo':str(time.time()),
+                        'gender': 'Female' if gender[0] > 0.5 else 'Male',
+                        'age': int(sum(_ages)/len(_ages))
+                    }
+
+                    try:
+                        payload = json.dumps(out_dict)
+                        print(payload)
+                        r = requests.post(url, json = out_dict)
+                        print(r)
+                    except:
+                        print("error")
+                    finally:
+                        pass
+
+
+
         if len(ret)>0:
             return ret
         return np.empty((0,5))

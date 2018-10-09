@@ -42,6 +42,9 @@ class AgeInference(object):
             self.__annotated_image = self.annotate(self.__annotated_image, bbox, self.__ages[i], self.__genders[i], self.__ethnicity[i])
         return self.__annotated_image
 
+    def get_crop(self, bbox):
+        return self.__image[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2]),:]
+
     def annotate(self, image, bbox, age, gender, ethnicity):
         cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), self.__bbox_color, 2)
         label = "{},{},{}".format(int(age),

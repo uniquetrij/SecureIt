@@ -417,9 +417,11 @@ class MTCNN(object):
             result = stage(img, result[0], result[1])
 
         [total_boxes, points] = result
+        # print(result)
         bounding_boxes = []
+        #added boundingbox[4] for confidence score
         for bounding_box in total_boxes:
-            bounding_boxes.append([int(bounding_box[0]), int(bounding_box[1]),int(bounding_box[2]-bounding_box[0]), int(bounding_box[3]-bounding_box[1])])
+            bounding_boxes.append([int(bounding_box[0]), int(bounding_box[1]),int(bounding_box[2]-bounding_box[0]), int(bounding_box[3]-bounding_box[1]), bounding_box[4]])
         return bounding_boxes
 
     def __stage1(self, image, scales: list, stage_status: StageStatus):

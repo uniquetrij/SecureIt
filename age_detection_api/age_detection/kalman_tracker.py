@@ -9,17 +9,18 @@ class KalmanBoxTracker(object):
     This class represents the internal state of individual tracked objects observed as bbox.
     """
     count = 0
-    def __init__(self, bbox=None, age=None, gender=None, ethnicity=None):
+
+    def __init__(self, bbox=None, age=None, gender=None, ethnicity=None, face=None):
         """
         Initialises a tracker using initial bounding box.
         """
-        #define constant velocity model
+        # define constant velocity model
         self.kf = KalmanFilter(dim_x=7, dim_z=4)
         self.kf.F = np.array([[1,0,0,0,1,0,0],[0,1,0,0,0,1,0],[0,0,1,0,0,0,1],[0,0,0,1,0,0,0],  [0,0,0,0,1,0,0],[0,0,0,0,0,1,0],[0,0,0,0,0,0,1]])
         self.kf.H = np.array([[1,0,0,0,0,0,0],[0,1,0,0,0,0,0],[0,0,1,0,0,0,0],[0,0,0,1,0,0,0]])
 
         self.kf.R[2:,2:] *= 10.
-        self.kf.P[4:,4:] *= 1000. #give high uncertainty to the unobservable initial velocities
+        self.kf.P[4:,4:] *= 1000.  # give high uncertainty to the unobservable initial velocities
         self.kf.P *= 10.
         self.kf.Q[-1,-1] *= 0.01
         self.kf.Q[4:,4:] *= 0.01
@@ -31,10 +32,18 @@ class KalmanBoxTracker(object):
         self.history = []
         self.hits = 0
         self.hit_streak = 0
-        self.age = 0
+        self.visibility = 0
         self.ages = [age]
         self.genders = [gender]
         self.ethnicity = [ethnicity]
+        self.time_since_update = 0
+        self.__face = face
+
+    def set_face(self, face):
+        self.__face = face
+
+    def get_face(self):
+        return self.__face
 
     def get_ages(self):
         return self.ages
@@ -44,6 +53,9 @@ class KalmanBoxTracker(object):
 
     def get_ethnicity(self):
         return self.ethnicity
+
+    def get_id(self):
+        return self.id
 
     def update(self, bbox, age, gender, ethnicity):
         """
@@ -66,7 +78,7 @@ class KalmanBoxTracker(object):
         if((self.kf.x[6]+self.kf.x[2])<=0):
             self.kf.x[6] *= 0.0
         self.kf.predict()
-        self.age += 1
+        self.visibility += 1
         if(self.time_since_update>0):
             self.hit_streak = 0
         self.time_since_update += 1
@@ -78,6 +90,9 @@ class KalmanBoxTracker(object):
         Returns the current bounding box estimate.
         """
         return convert_x_to_bbox(self.kf.x)[0]
+
+    def get_visibility(self):
+        return self.visibility
 
 
 def convert_bbox_to_z(bbox):

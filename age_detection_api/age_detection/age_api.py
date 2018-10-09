@@ -65,10 +65,12 @@ class AgeDetection(object):
         '''
         frame = inference.get_input()
         faces = self.__detector.detect_faces(frame)
+        faces = list_filter(faces, 0.90)
+        # print("faces " ,faces)
         bboxes = []
         face_imgs = np.empty((len(faces), self.__face_size, self.__face_size, 3))
         for i, face in enumerate(faces):
-            face_img, cropped = self.crop_face(frame, face, margin=40, size=self.__face_size)
+            face_img, cropped = self.crop_face(frame, face[:4], margin=40, size=self.__face_size)
             (x, y, w, h) = cropped
             bboxes.append([x, y, x + w, y + h])
             # face_img = (face_img/255)-0.5
@@ -146,3 +148,11 @@ class AgeDetection(object):
         except:
             self.__out_pipe.push((None, inference))
 
+
+def list_filter(lst, confidence):
+    out = []
+    for l in lst:
+        if l[4] < confidence:
+            continue
+        out.append(l)
+    return out
