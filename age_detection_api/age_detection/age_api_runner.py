@@ -10,11 +10,11 @@ import numpy as np
 
 class AgeApiRunner(object):
 
-    def __init__(self):
+    def __init__(self, session_runner):
         self.__detection = AgeDetection()
         self.__detector_ip = self.__detection.get_in_pipe()
         self.__detector_op = self.__detection.get_out_pipe()
-        self.__session_runner = SessionRunner()
+        self.__session_runner = session_runner
         self.__detection.use_session_runner(self.__session_runner)
         self.__detection.use_threading()
         self.__session_runner.start()
@@ -59,13 +59,13 @@ def push_output(detector_op, tracker, age_in_pipe):
                 frame = i_dets.annotate(frame, bbox, int(age), gender, ethnicity[-1])
             age_in_pipe.push(frame)
 
-def runner(age_in_pipe, cam_id=-1):
+def runner(age_in_pipe, session_runner, cam_id=-1):
     cap = cv2.VideoCapture(cam_id)
     while True:
         ret, image = cap.read()
         if ret:
             break
-    age_api_runner = AgeApiRunner()
+    age_api_runner = AgeApiRunner(session_runner=session_runner)
     print(type(age_api_runner))
     t = Thread(target=read_video, args=(age_api_runner.get_detector_ip(), cap,))
     t.start()

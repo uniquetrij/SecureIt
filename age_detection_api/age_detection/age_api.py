@@ -16,7 +16,7 @@ class AgeDetection(object):
     WRN_WEIGHTS_PATH = age_model_path.get() + '/age_model.h5'
 
     def __init__(self, flush_pipe_on_read=False):
-        self.__detector = MTCNN()
+        self.__detector = None
         self.__face_size = 64
         self.__flush_pipe_on_read = flush_pipe_on_read
         self.__thread = None
@@ -115,6 +115,7 @@ class AgeDetection(object):
         self.__session_runner = session_runner
         K.set_session(self.__session_runner.get_session())
         self.__tf_sess = K.get_session()
+        self.__detector = MTCNN(session_runner=self.__session_runner)
 
         with self.__tf_sess.as_default():
             self.__model = WideResNet(self.__face_size)()

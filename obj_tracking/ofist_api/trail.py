@@ -14,6 +14,14 @@ class Trail:
         self.__exits = {}
         self.__exit_threshold = 1
 
+    def update_zones(self, zones):
+        self.__zones = zones
+        self.__prev_zones = []
+        self.__regions = []
+        self.__track = []
+        self.__entries = {}
+        self.__exits = {}
+
     def update_track(self, bbox):
         timestamp = time.time()
         self.__track.append((timestamp, bbox))

@@ -1,5 +1,5 @@
-from keras.models import Model
 import tensorflow as tf
+from keras.models import Model
 from keras.layers import Reshape, Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Flatten, Dense, Lambda
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.merge import concatenate
@@ -7,7 +7,10 @@ from keras.applications.mobilenet import MobileNet
 from keras.applications import InceptionV3
 from keras.applications.vgg16 import VGG16
 from keras.applications.resnet50 import ResNet50
+# from keras.backend import tf
 from data.demos.retail_analytics.trained import path as model_path
+
+
 FULL_YOLO_BACKEND_PATH  = model_path.get()+"/full_yolo_backend.h5"   # should be hosted on a server
 TINY_YOLO_BACKEND_PATH  = "tiny_yolo_backend.h5"   # should be hosted on a server
 SQUEEZENET_BACKEND_PATH = "squeezenet_backend.h5"  # should be hosted on a server
@@ -55,7 +58,7 @@ class FullYoloFeature(BaseFeatureExtractor):
         x = MaxPooling2D(pool_size=(2, 2))(x)
 
         # Layer 3
-        x = Conv2D(128, (3,3), strides=(1,1), padding='same', name='conv_3', use_bias=False)(x)
+        x = Conv2D(128, (3,3), strides=(1,1),padding='same', name='conv_3', use_bias=False)(x)
         x = BatchNormalization(name='norm_3')(x)
         x = LeakyReLU(alpha=0.1)(x)
 
@@ -132,7 +135,7 @@ class FullYoloFeature(BaseFeatureExtractor):
 
         # Layer 17
         x = Conv2D(512, (1,1), strides=(1,1), padding='same', name='conv_17', use_bias=False)(x)
-        x = BatchNormalization(name='norm_17')(x)
+        x = BatchNormalization(name='norm_17epsilon')(x)
         x = LeakyReLU(alpha=0.1)(x)
 
         # Layer 18

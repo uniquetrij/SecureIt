@@ -90,7 +90,8 @@ class Network(object):
                     for param_name, data in weights_values[layer_name].items():
                         try:
                             var = tf.get_variable(param_name)
-                            self._session.run(var.assign(data))
+                            with self._session.as_default():
+                                self._session.run(var.assign(data))
 
                         except ValueError:
                             if not ignore_missing:

@@ -140,6 +140,15 @@ class OFISTObjectTrackingAPI:
         patches = inference.get_data()
         self.frame_count += 1
 
+        # zones update
+        zone_pipe = inference.get_meta_dict()['zone_pipe']
+        ret, _ = zone_pipe.pull()
+        if ret:
+            self.__zones = Zone.create_zones_from_conf(self.__conf_path)
+        for trk in self.trackers:
+            trk.update_zones(self.__zones)
+
+        # association of detections with trackers
         matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
                                                                                            bboxes)
 

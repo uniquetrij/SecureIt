@@ -31,6 +31,11 @@ class Tracker(object):
         self.__patch_update_timestamp = time.time()
         self.__trail = Trail(self.__zones, self.__id)
 
+    def update_zones(self, zones):
+        self.__zones = zones
+        if zones is not None:
+            self.__trail.update_zones(self.__zones)
+
     def get_creation_time(self):
         return self.__creation_time
 

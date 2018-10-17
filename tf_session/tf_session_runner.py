@@ -9,7 +9,7 @@ from tf_session.tf_session_utils import Pipe
 
 
 class SessionRunner:
-    __config = tf.ConfigProto()
+    __config = tf.ConfigProto(log_device_placement=False)
     __config.gpu_options.allow_growth = True
     __counter = 0
 

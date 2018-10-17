@@ -69,7 +69,8 @@ class PNet(Network):
                                input_layer_name='prelu3', relu=False)
 
     def _feed(self, image):
-        return self._session.run(['pnet/conv4-2/BiasAdd:0', 'pnet/prob1:0'], feed_dict={'pnet/input:0': image})
+        with self._session.as_default():
+            return self._session.run(['pnet/conv4-2/BiasAdd:0', 'pnet/prob1:0'], feed_dict={'pnet/input:0': image})
 
 
 class RNet(Network):
@@ -101,7 +102,8 @@ class RNet(Network):
         layer_factory.new_fully_connected(name='fc2-2', output_count=4, relu=False, input_layer_name='prelu4')
 
     def _feed(self, image):
-        return self._session.run(['rnet/fc2-2/fc2-2:0', 'rnet/prob1:0'], feed_dict={'rnet/input:0': image})
+        with self._session.as_default():
+            return self._session.run(['rnet/fc2-2/fc2-2:0', 'rnet/prob1:0'], feed_dict={'rnet/input:0': image})
 
 
 class ONet(Network):
@@ -137,7 +139,8 @@ class ONet(Network):
         layer_factory.new_fully_connected(name='fc2-3', output_count=10, relu=False, input_layer_name='prelu5')
 
     def _feed(self, image):
-        return self._session.run(['onet/fc2-2/fc2-2:0', 'onet/fc2-3/fc2-3:0', 'onet/prob1:0'],
+        with self._session.as_default():
+            return self._session.run(['onet/fc2-2/fc2-2:0', 'onet/fc2-3/fc2-3:0', 'onet/prob1:0'],
                                  feed_dict={'onet/input:0': image})
 
 
@@ -166,7 +169,7 @@ class MTCNN(object):
     """
 
     def __init__(self, weights_file: str=None, min_face_size: int=20, steps_threshold: list=None,
-                 scale_factor: float=0.709):
+                 scale_factor: float=0.709, session_runner = None):
         """
         Initializes the MTCNN.
         :param weights_file: file uri with the weights of the P, R and O networks from MTCNN. By default it will load
@@ -185,14 +188,15 @@ class MTCNN(object):
         self.__min_face_size = min_face_size
         self.__steps_threshold = steps_threshold
         self.__scale_factor = scale_factor
+        self.__session = session_runner.get_session()
 
         config = tf.ConfigProto(log_device_placement=False)
         config.gpu_options.allow_growth = True
 
-        self.__graph = tf.Graph()
+        self.__graph = self.__session.graph
 
         with self.__graph.as_default():
-            self.__session = tf.Session(config=config, graph=self.__graph)
+            # self.__session = session  # tf.Session(config=config, graph=self.__graph)
 
             weights = np.load(weights_file).item()
             self.__pnet = PNet(self.__session, False)

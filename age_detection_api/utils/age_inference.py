@@ -47,9 +47,12 @@ class AgeInference(object):
 
     def annotate(self, image, bbox, age, gender, ethnicity):
         cv2.rectangle(image, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), self.__bbox_color, 2)
-        label = "{},{},{}".format(int(age),
-                                  "F" if gender[0] > 0.5 else "M",
-                                  AgeInference.ETHNICITY[ethnicity])
+        # label = "{},{},{}".format(int(age),
+        #                           "F" if gender[0] > 0.5 else "M",
+        #                           AgeInference.ETHNICITY[ethnicity])
+
+        label = "{},{}".format(int(age),
+                                  "F" if gender[0] > 0.5 else "M")
 
         image = AgeInference.draw_label(image, (int(bbox[0]), int(bbox[1])), label)
         return image
