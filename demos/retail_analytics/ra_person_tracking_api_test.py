@@ -77,8 +77,8 @@ point_set.wait()
 ret, point_set_dict = point_set.pull()
 margin = 100
 if ret:
-    point_set_dict['point_set_2'] = [[0, margin], [img_shape[1]-2*margin, margin],
-                                             [img_shape[1]-2*margin, img_shape[0]-margin], [0, img_shape[0]-margin]]
+    point_set_dict['point_set_2'] = [[0, 0.6*margin], [img_shape[1]-4.25*margin, 0.6*margin],
+                                             [img_shape[1]-4.25*margin, img_shape[0]-0.6*margin], [0, img_shape[0]-0.6*margin]]
     retail_an_object.rack_dict = point_set_dict
     retail_an_object.global_init()
 timestamp  = time.time()

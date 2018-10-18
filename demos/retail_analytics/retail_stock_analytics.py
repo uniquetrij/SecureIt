@@ -21,10 +21,11 @@ class RetailAnalytics():
         self.shelf_product_type = None
         self.prev_shelf_state_1 = None
         self.postjsondata = {}
+        self.postpromojsondata = {}
         self.finaljsondata = {}
         self.check_flag = 0
         self.rack_dict = None
-        self.product_shelf = None
+        self.product_shelf = {}
         self.left_x = None
         self.right_x = None
         self.top_y = None
@@ -32,6 +33,8 @@ class RetailAnalytics():
         self.promo_shelf = None
         self.promo_number = None
         self.promo_check = False
+        self.product_id = None
+
 
     def global_init(self, session_runner=None):
         self.config_path = input_path.get() + "/config.json"
@@ -52,6 +55,7 @@ class RetailAnalytics():
             self.vertical_stacks = self.config["global_init"]["v_stack"]
             self.promo_number = self.config["global_init"]["promo_shelf"]
             self.promo_check = self.config["global_init"]["is_promo"]
+            self.product_id = ["product-2jn47jpre","product-2jn47jtqm","product-2jn47kl2g","product-2jmvrhrxd", "product-2jn47daux","product-2jmvu04vh"]
             self.shelfs_matrix = [[None for x in range(self.vertical_stacks)] for y in range(self.horizontal_stacks)]
             self.left_x = rack_cord[0][0]
             self.right_x = rack_cord[1][0]
@@ -71,9 +75,12 @@ class RetailAnalytics():
 
             self.shelf_product_type = ['detergent', 'mineral_water', 'biscuit', 'lays', 'noodles', 'coke']
             self.labels_dict = {1: "detergent", 4: "noodles", 0: "lays", 2: "mineral_water", 3: "coke", 5: "biscuit"}
-
             # shelfno: product label
-            self.product_shelf = {1: 1, 2: 2, 3: 5, 4: 0, 5: 4, 6: 3}
+            # self.product_shelf = {1: 1, 2: 2, 3: 5, 4: 0, 5: 4, 6: 3}
+
+            pshelf = self.config["global_init"]["product_shelf"]
+            for key, value in pshelf.items():
+                self.product_shelf[int(key)] = value
             print("successfull")
             return True
         else:
@@ -281,27 +288,31 @@ class RetailAnalytics():
             self.postjsondata = {'store':"store-2jmvt5t13",'rack':"rack-2jmvtheoo",'zone':"zone-2jmvts25j",'shelves':tempJson}
             # print(res)
             # s = json.dumps(self.postjsondata)
-            print(self.postjsondata, ' ', RetailAnalytics._check, '\n')
+            # print(self.postjsondata, ' ', RetailAnalytics._check, '\n')
             # open("out.json", "w").write(s+'\n')
             RetailAnalytics._check += 1
 
         if (promo_flag == 1 and self.promo_check):
             promoJson = self.shelf_state['shelf' + str(self.promo_number)].copy()
             if 'products' in promoJson:
+                promoJson['productId'] = self.product_id[self.promo_number-1]
+                promoJson['store'] = "store-2jmvt8glq"
                 del promoJson['products']
-            # print('in')
 
-            print(promoJson)
-            # self.postjsondata = {'store': "store-2jmvt5t13", 'rack': "rack-2jmvtheoo", 'zone': "zone-2jmvts25j",
-            #                      'shelves': self.promo_shelf}
+
+            self.postpromojsondata = promoJson
 
         self.prev_shelf_state_1 = self.shelf_state.copy()
         self.promo_shelf = self.shelf_state['shelf' + str(self.promo_number)].copy()
 
         if 'products' in self.promo_shelf:
             del self.promo_shelf['products']
-        # print(self.promo_shelf, 'test1')
         return flag
 
     def postdata(self):
+
         res = requests.post('https://us-central1-retailanalytics-d6ccf.cloudfunctions.net/api/misplaced-items',json=self.postjsondata)
+        if(len(self.postpromojsondata) > 0):
+            # self.postpromojsondata ={}
+            res = requests.post('https://us-central1-retailanalytics-d6ccf.cloudfunctions.net/api/misplaced-items/promoted',
+                                json=self.postpromojsondata)

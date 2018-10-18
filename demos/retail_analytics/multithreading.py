@@ -77,6 +77,11 @@ def live_age_feed():
     return Response(gen_age_api(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/update_zone_image')
+def update_zone_image():
+    print("Update the zone image")
+    return "ok"
+
 
 def run():
     app.run(host='0.0.0.0', debug=True, use_reloader=False,threaded=True)
