@@ -82,6 +82,7 @@ def live_age_feed():
 def update_zone_image():
     flag = True
     zone_image_update.push(flag)
+    print("update image successful")
     return "ok"
 
 
