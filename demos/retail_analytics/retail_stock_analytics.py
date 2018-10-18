@@ -55,7 +55,10 @@ class RetailAnalytics():
             self.vertical_stacks = self.config["global_init"]["v_stack"]
             self.promo_number = self.config["global_init"]["promo_shelf"]
             self.promo_check = self.config["global_init"]["is_promo"]
-            self.product_id = ["product-2jn47jpre","product-2jn47jtqm","product-2jn47kl2g","product-2jmvrhrxd", "product-2jn47daux","product-2jmvu04vh"]
+            self.product_id = ["product-2jn47kl2g","product-2jn47jpre", "product-2jn47jtqm","product-2jmvu04vh","product-2jn47daux", "product-2jmvrhrxd"]
+            # self.product_id = ["product-2jn47jtqm", "product-2jn47jpre", "product-2jn47kl2g", "product-2jmvrhrxd",
+            #                    "product-2jn47daux", "product-2jmvu04vh"]
+            # self.shelf_product_type = ['biscuit', 'detergent', 'mineral_water', 'coke', 'noodles', 'coke']
             self.shelfs_matrix = [[None for x in range(self.vertical_stacks)] for y in range(self.horizontal_stacks)]
             self.left_x = rack_cord[0][0]
             self.right_x = rack_cord[1][0]
@@ -74,7 +77,7 @@ class RetailAnalytics():
                     shelf_count += 1
 
             # self.shelf_product_type = ['detergent', 'mineral_water', 'biscuit', 'lays', 'noodles', 'coke']
-            self.shelf_product_type = ['biscuit', 'detergent', 'mineral_water', 'coke', 'noodles', 'coke']
+            self.shelf_product_type = ['biscuit', 'detergent', 'mineral_water', 'coke', 'noodles', 'lays']
             self.labels_dict = {1: "detergent", 4: "noodles", 0: "lays", 2: "mineral_water", 3: "coke", 5: "biscuit"}
             # shelfno: product label
             # self.product_shelf = {1: 1, 2: 2, 3: 5, 4: 0, 5: 4, 6: 3}
@@ -261,9 +264,9 @@ class RetailAnalytics():
         if (flag == 1 and self.promo_check):
             promo_previous_list = self.promo_shelf['misplaced'].keys()
             promo_current_lits = self.shelf_state['shelf' + str(self.promo_number)]['misplaced'].keys()
-            print(self.promo_number)
-            print(promo_previous_list)
-            print(promo_current_lits)
+            # print(self.promo_number)
+            # print(promo_previous_list)
+            # print(promo_current_lits)
             counter = 0
             if (len(promo_previous_list) == len(promo_current_lits)):
                 for x in promo_previous_list:
@@ -301,7 +304,7 @@ class RetailAnalytics():
                 promoJson['store'] = "store-2jmvt8glq"
                 del promoJson['products']
 
-            print(promoJson)
+            # print(promoJson)
             self.postpromojsondata = promoJson
         # print(self.postpromojsondata)
         self.prev_shelf_state_1 = self.shelf_state.copy()
