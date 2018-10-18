@@ -43,6 +43,7 @@ tracking_in_pipe = Pipe()
 age_in_pipe = Pipe()
 point_set_pipe = Pipe()
 zone_pipe = Pipe()
+zone_image_update = Pipe()
 dict={'point_set_1':[[103, 13], [551, 14], [535, 341], [114, 343]],'point_set_2':[[99, 11], [552, 13], [542, 339], [108, 342]]}
 @app.route('/live_stock_feed')
 def live_stock_feed():
@@ -79,7 +80,8 @@ def live_age_feed():
 
 @app.route('/update_zone_image')
 def update_zone_image():
-    print("Update the zone image")
+    flag = True
+    zone_image_update.push(flag)
     return "ok"
 
 

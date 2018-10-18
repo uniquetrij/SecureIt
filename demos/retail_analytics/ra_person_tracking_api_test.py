@@ -2,6 +2,10 @@ import json
 import time
 from datetime import datetime
 from threading import Thread
+####
+import sys
+sys.path.append('../../')
+####
 from demos.retail_analytics import multithreading as mlt
 from age_detection_api.age_detection import age_api_runner
 
@@ -25,7 +29,8 @@ session_runner = SessionRunner()
 session_runner.start()
 
 # cap = cv2.VideoCapture(videos_path.get() + '/ra_rafee_cabin_1.mp4')
-cap = cv2.VideoCapture(0)
+#Camera Id For Tracking and Object Detection
+cap = cv2.VideoCapture(1)
 
 img_shape = None
 while True:
@@ -33,7 +38,7 @@ while True:
     if ret:
         # print(image.shape)
         img_shape = image.shape
-        cv2.imwrite('/home/developer/workspaces/Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+        cv2.imwrite('../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
         break
 
 # detector =  YOLOObjectDetectionAPI('yolo_api', True)
@@ -63,8 +68,10 @@ tracking_in_pipe = mlt.tracking_in_pipe
 stock_in_pipe = mlt.stock_in_pipe
 point_set = mlt.point_set_pipe
 zone_pipe = mlt.zone_pipe
-# age_in_pipe = mlt.age_in_pipe
-# age_api_runner.runner(age_in_pipe, session_runner, cam_id=1)
+age_in_pipe = mlt.age_in_pipe
+zone_image_update = mlt.zone_image_update
+#Camera Id For Age Detection
+age_api_runner.runner(age_in_pipe, session_runner, cam_id=2)
 
 tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False, conf_path=input_path.get() + "/demo_zones_1.csv")
 tracker.use_session_runner(session_runner)
@@ -73,6 +80,16 @@ trk_op = tracker.get_out_pipe()
 tracker.run()
 
 retail_an_object = RetailAnalytics()
+zone_image_update.wait()
+ret, flag = zone_image_update.pull()
+if ret and flag:
+    while True:
+        ret, image = cap.read()
+        if ret:
+            # print(image.shape)
+            img_shape = image.shape
+            cv2.imwrite('../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+            break
 point_set.wait()
 ret, point_set_dict = point_set.pull()
 margin = 100
@@ -112,6 +129,11 @@ def infer_yolo(timestamp, margin):
         ret, image = yolo_input.pull(flush=True)
         if not ret:
             continue
+
+        ret, flag = zone_image_update.pull()
+        if ret and flag:
+            cv2.imwrite('../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+
         inference = Inference(image)
         img_shape = image.shape
         ret, point_set_dict = point_set.pull()
