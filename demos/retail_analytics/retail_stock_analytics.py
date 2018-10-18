@@ -131,12 +131,12 @@ class RetailAnalytics():
             ymin,ymax=self.get_ycordinates(product,image_h, image_w)
             xmin,xmax=self.get_xcordinates(product,image_h, image_w)
             cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (0,0,255), 3)
-            cv2.putText(image,
-                   misplaced_str,
-                    (30,30 ),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1e-3 * image_h*1.5,
-                    (0,0,255), 3)
+            # cv2.putText(image,
+            #        misplaced_str,
+            #         (30,30 ),
+            #         cv2.FONT_HERSHEY_SIMPLEX,
+            #         1e-3 * image_h*1.5,
+            #         (0,0,255), 3)
         return image
     def draw_empty_space(self,boxes,image):
         image_h, image_w, _ = image.shape
@@ -168,7 +168,7 @@ class RetailAnalytics():
             for i in range(0,len(box_xmin_shelf)):
                 xmin=box_xmin_shelf[i]
                 xmax=box_xmax_shelf[i]
-                if(xmin-x_start>40):
+                if(xmin-x_start>80):
                     cv2.rectangle(image, (int(x_start+5),int(y_box)),
                                   (int(xmin-5),int(y_box+self.shelf_vsize)), (255,0,0), 3)
                     empty_space+=xmin-x_start
@@ -216,7 +216,7 @@ class RetailAnalytics():
             flag = 1
             if (self.promo_check):
                 self.promo_shelf = self.shelf_state['shelf' + str(self.promo_number)].copy()
-                print(self.promo_shelf)
+                # print(self.promo_shelf)
                 if 'products' in self.promo_shelf:
                     del self.promo_shelf['products']
                     promo_flag = 1
@@ -244,6 +244,11 @@ class RetailAnalytics():
             if (count != len(current_list)):
                 flag = 1
                 break
+            else:
+                for ch_products in self.shelf_state['shelf' + str(i)]['misplaced']:
+                    if((self.shelf_state['shelf' + str(i)]['misplaced'][ch_products] - self.prev_shelf_state_1['shelf' + str(i)]['misplaced'][ch_products]) != 0):
+                        flag = 1
+                        break
 
         if (flag == 1 and self.promo_check):
             promo_previous_list = self.promo_shelf['misplaced'].keys()
@@ -258,8 +263,14 @@ class RetailAnalytics():
             else:
                 promo_flag = 1
 
-            if (counter != len(promo_current_lits)):
-                promo_flag = 1
+            if(promo_flag != 1):
+                if (counter != len(promo_current_lits)):
+                    promo_flag = 1
+                else:
+                    for ch_products in self.promo_shelf['misplaced']:
+                        if((self.shelf_state['shelf' + str(self.promo_number)]['misplaced'][ch_products] - self.promo_shelf['misplaced'][ch_products]) != 0):
+                            promo_flag = 1
+                            break
             # print(promo_flag,self.promo_check)
 
         if (flag == 1):
@@ -275,9 +286,12 @@ class RetailAnalytics():
             RetailAnalytics._check += 1
 
         if (promo_flag == 1 and self.promo_check):
-            promoJson = []
+            promoJson = self.shelf_state['shelf' + str(self.promo_number)].copy()
+            if 'products' in promoJson:
+                del promoJson['products']
             # print('in')
-            print(self.promo_shelf)
+
+            print(promoJson)
             # self.postjsondata = {'store': "store-2jmvt5t13", 'rack': "rack-2jmvtheoo", 'zone': "zone-2jmvts25j",
             #                      'shelves': self.promo_shelf}
 

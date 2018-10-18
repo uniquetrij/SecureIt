@@ -27,10 +27,12 @@ session_runner.start()
 # cap = cv2.VideoCapture(videos_path.get() + '/ra_rafee_cabin_1.mp4')
 cap = cv2.VideoCapture(0)
 
+img_shape = None
 while True:
     ret, image = cap.read()
     if ret:
         # print(image.shape)
+        img_shape = image.shape
         cv2.imwrite('/home/developer/workspaces/Angular-Dashboard-master/src/assets/rack_image.jpg', image)
         break
 
@@ -70,6 +72,18 @@ trk_ip = tracker.get_in_pipe()
 trk_op = tracker.get_out_pipe()
 tracker.run()
 
+retail_an_object = RetailAnalytics()
+point_set.wait()
+ret, point_set_dict = point_set.pull()
+margin = 100
+if ret:
+    point_set_dict['point_set_2'] = [[0, margin], [img_shape[1]-2*margin, margin],
+                                             [img_shape[1]-2*margin, img_shape[0]-margin], [0, img_shape[0]-margin]]
+    retail_an_object.rack_dict = point_set_dict
+    retail_an_object.global_init()
+timestamp  = time.time()
+zone_detection_in_pipe = Pipe()
+
 
 def read():
     while True:
@@ -92,14 +106,7 @@ def read():
             trk_ip.push(infer_idets)
 
 
-retail_an_object = RetailAnalytics()
-retail_an_object.rack_dict={'point_set_1': [[96, 10], [548, 14], [531, 343], [110, 341]], 'point_set_2': [[95, 8], [549, 13], [545, 341], [96, 340]]}
-retail_an_object.global_init()
-timestamp  = time.time()
-zone_detection_in_pipe = Pipe()
-
-
-def infer_yolo(timestamp):
+def infer_yolo(timestamp, margin):
     while True:
         yolo_input.wait()
         ret, image = yolo_input.pull(flush=True)
@@ -108,8 +115,6 @@ def infer_yolo(timestamp):
         inference = Inference(image)
         img_shape = image.shape
         ret, point_set_dict = point_set.pull()
-
-        margin = 0
         if ret:
             point_set_dict["point_set_2"] = [[margin, margin], [img_shape[1]-margin, margin],
                                              [img_shape[1]-margin, img_shape[0]-margin], [margin, img_shape[0]-margin]]
@@ -150,7 +155,7 @@ def infer_yolo(timestamp):
 t = Thread(target=read)
 t.start()
 
-thread1 = Thread(target=infer_yolo, args=(timestamp,))
+thread1 = Thread(target=infer_yolo, args=(timestamp, margin,))
 thread1.start()
 
 video_writer = VideoWriter(out_path.get() + "/t_mobile_demo_out_{}.avi".format(time.strftime('%Y_%m_%d_%H_%M')), image.shape[1], image.shape[0], 25)

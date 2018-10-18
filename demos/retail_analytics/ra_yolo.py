@@ -45,10 +45,10 @@ class YOLO(object):
         test2 = np.array(warp_points['point_set_2'], dtype="float32")
 
         # print(test2)
-        points = [warp_points['point_set_2'][0],warp_points['point_set_2'][2]]
+        # points = [warp_points['point_set_2'][0],warp_points['point_set_2'][2]]
         # print(points)
         # np.array([[0, 0], [img_shape[0], 0], [img_shape[0], img_shape[1]], [0, img_shape[1]]], dtype=np.float32)
-        M = cv2.getPerspectiveTransform(test1, np.array([[0, 0], [img_shape[1],0], [img_shape[1], img_shape[0]], [0,img_shape[0]]], dtype=np.float32))
+        M = cv2.getPerspectiveTransform(test1, test2)
         warped_image = cv2.warpPerspective(original, M, (img_shape[1],img_shape[0]),flags=cv2.INTER_LINEAR)
 
 
