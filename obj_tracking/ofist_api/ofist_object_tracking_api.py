@@ -96,10 +96,14 @@ class OFISTObjectTrackingAPI:
         bboxes = []
 
         scores = i_dets.get_scores()
+        # checking for person in a specified zone and track a person only then commenting it currently for that functionality
         for i in range(len(classes)):
-            if classes[i] == i_dets.get_category('person') and scores[i] > .95:
+            if classes[i] == i_dets.get_category('person') and scores[i] > .90:
+                #todo modify this to be relative to frame
+                # if boxes[i][2] < 915:
                 bboxes.append([boxes[i][1], boxes[i][0], boxes[i][3], boxes[i][2]])
         patches = [0 for x in bboxes]
+        # print(bboxes)
         # flips = [0 for x in bboxes]
         threads = []
 
@@ -141,16 +145,18 @@ class OFISTObjectTrackingAPI:
         self.frame_count += 1
 
         # zones update
-        zone_pipe = inference.get_meta_dict()['zone_pipe']
-        ret, _ = zone_pipe.pull()
-        if ret:
-            self.__zones = Zone.create_zones_from_conf(self.__conf_path)
-        for trk in self.trackers:
-            trk.update_zones(self.__zones)
+        # zone_pipe = inference.get_meta_dict()['zone_pipe']
+        # ret, _ = zone_pipe.pull()
+        # if ret:
+        #     self.__zones = Zone.create_zones_from_conf(self.__conf_path)
+        # for trk in self.trackers:
+        #     trk.update_zones(self.__zones)
 
         # association of detections with trackers
         matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
-                                                                                           bboxes)
+                                                                                           self.__session_runner.get_session().graph)
+        # matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
+        #                                                                                    bboxes)
 
         if bboxes:
             for trk in self.trackers:
@@ -177,6 +183,8 @@ class OFISTObjectTrackingAPI:
             trails[trk.get_id()] = trk.get_trail()
             #
         inference.get_meta_dict()['trails'] = trails
+        #test for age_gender
+        Tracker.detect_age_gender(self.trackers)
 
         if (len(ret) > 0):
             inference.set_result(ret)

@@ -6,10 +6,34 @@ from sklearn.utils.linear_assignment_ import linear_assignment
 from feature_comparator.siamese_api.siamese import SiameseComparator
 from data.feature_comparator.siamese_api.trained import path as model_path
 from obj_tracking.ofist_api.trail import Trail
+from age_detection_api.age_detection.age_api import AgeDetection
+from person.person_metadata import Person
+from tf_session.tf_session_runner import SessionRunner
+from tf_session.tf_session_utils import Inference
 
+
+
+
+class AgeApiRunner(object):
+
+    def __init__(self, session_runner):
+        self.__detection = AgeDetection()
+        self.__detector_ip = self.__detection.get_in_pipe()
+        self.__detector_op = self.__detection.get_out_pipe()
+        self.__session_runner = session_runner
+        self.__detection.use_session_runner(self.__session_runner)
+        self.__detection.use_threading()
+        self.__session_runner.start()
+        self.__detection.run()
+
+    def get_detector_ip(self):
+        return self.__detector_ip
+    def get_detector_op(self):
+        return self.__detector_op
 
 class Tracker(object):
     num_tracks = 0
+    __age_inference = AgeApiRunner(SessionRunner())
 
     @staticmethod
     def __get_next_id():
@@ -30,6 +54,19 @@ class Tracker(object):
         self.__creation_time = frame_no
         self.__patch_update_timestamp = time.time()
         self.__trail = Trail(self.__zones, self.__id)
+
+        #age detection components
+        self.__detect_age = True
+        self.__image = None
+
+    def set_image(self, image):
+        self.__image = image
+
+    def get_image(self):
+        return self.__image
+
+    def detect_age(self):
+        return self.__detect_age
 
     def update_zones(self, zones):
         self.__zones = zones
@@ -94,7 +131,7 @@ class Tracker(object):
         return self.__hit_streak
 
     @staticmethod
-    def associate_detections_to_trackers(f_vecs, trackers, bboxes, min_similarity_threshold=0.65):
+    def associate_detections_to_trackers(f_vecs, trackers, graph, min_similarity_threshold=0.625):
         """
         Assigns detections to tracked object (both represented as bounding boxes)
 
@@ -116,12 +153,16 @@ class Tracker(object):
                 # if ((abs(float(y2-y1)**2 - float(x2-x1)**2)**0.5)) < 25:
                 #     print((abs(float(y2 - y1) ** 2 - float(x2 - x1) ** 2) ** 0.5))
                 #     print(d,t)
-                similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
-                # similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
+                # similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
+
+                similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
         '''The linear assignment module tries to minimise the total assignment cost.
         In our case we pass -iou_matrix as we want to maximise the total IOU between track predictions and the frame detection.'''
-
+        #print("   ----------------matrix")
+        #print(similarity_matrix)
+        #print("   ----------------")
         matched_indices = linear_assignment(-similarity_matrix)
+        #print("matched indices", matched_indices)
 
         # print("Matched Indices: ", matched_indices[:,1])
 
@@ -179,7 +220,7 @@ class Tracker(object):
             print("Initializing...")
             with graph.as_default():
                 Tracker.__siamese_model = SiameseComparator()()
-                Tracker.__siamese_model.load_weights(model_path.get() + '/siamese-mars-small128.h5')
+                Tracker.__siamese_model.load_weights(model_path.get() + '/model_12_28_2018_12_02_56.h5')
 
         maximum = 0
         lst = tracker.get_features()
@@ -187,9 +228,49 @@ class Tracker(object):
             b = f_vec
             a = np.expand_dims(a, axis=0)
             b = np.expand_dims(b, axis=0)
-            a = np.expand_dims(a, axis=0)
-            b = np.expand_dims(b, axis=0)
+            # a = np.expand_dims(a, axis=0)
+            # b = np.expand_dims(b, axis=0)
             # a = np.asarray(a) / np.linalg.norm(a, axis=1, keepdims=True)
             # b = np.asarray(b) / np.linalg.norm(b, axis=1, keepdims=True)
             maximum += Tracker.__siamese_model.predict([a, b])[0][0]
         return maximum / len(lst)
+
+    @staticmethod
+    def detect_age_gender(trackers):
+        if not Tracker.__age_inference:
+            print("initializing Age Model")
+            Tracker.__age_inference = AgeApiRunner(SessionRunner())
+        detector_ip = Tracker.__age_inference.get_detector_ip()
+        detector_op = Tracker.__age_inference.get_detector_op()
+        for i, trk in enumerate(trackers):
+            trk_trail = trk.get_trail()
+            person = trk_trail.get_person()
+            if not trk.detect_age() or len(person.get_age_list()) >= 10 or len(person.get_gender_list()) >= 10 or trk.get_image() is None:
+                continue
+            # print("len of tracker", i, " " ,len(trk.get_patches()))
+            detector_ip.push(Inference(trk.get_image().copy()))
+            # ret, inference = detector_op.pull(True)
+
+            while True:
+                detector_op.wait()
+                ret, inference = detector_op.pull(True)
+                if ret:
+                    # print(ret)
+                    if inference.get_result().get_genders() is None or inference.get_result().get_ages() is None:
+                        break
+                    print(inference.get_result().get_genders())
+                    print(inference.get_result().get_ages())
+                    gender_confidence = inference.get_result().get_genders()[0][0]
+                    gender = 'M' if gender_confidence < 0.5 else 'F'
+                    age = int(inference.get_result().get_ages()[0])
+                    # print(type())
+                    trk.get_trail().get_person().add_age(age)
+                    trk.get_trail().get_person().add_gender(gender, gender_confidence)
+                    print("ages", trk.get_trail().get_person().get_age_list())
+                    print("genders", trk.get_trail().get_person().get_gender_list())
+                    break
+                # Inference.
+
+
+
+

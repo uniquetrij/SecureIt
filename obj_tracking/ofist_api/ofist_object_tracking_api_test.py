@@ -22,7 +22,7 @@ cap = cv2.VideoCapture(videos_path.get() + '/t_mobile_demo.mp4')
 # cap = cv2.VideoCapture(videos_path.get() + '/ra_rafee_cabin_1.mp4')
 # cap = cv2.VideoCapture(-1)
 seek = 0
-
+print("reading video")
 while True:
     ret, image = cap.read()
     if ret:
@@ -47,9 +47,7 @@ tracker.run()
 
 def read():
 
-
     while True:
-
         ret, image = cap.read()
         # image = cv2.resize(image, (int(image.shape[1]/2), int(image.shape[0]/2)))
         # if count == 100:

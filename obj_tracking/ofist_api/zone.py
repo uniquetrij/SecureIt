@@ -15,12 +15,12 @@ class Zone:
         return self.__zone_path.contains_point(point)
 
     def is_centroid_in_zone(self, bbox):
-        return self.is_in_zone(Zone.find_centroid(bbox))
+        return self.is_in_zone(Zone.find_bottom_centroid(bbox))
 
     def is_bbox_in_zone(self, bbox):
-        return self.is_in_zone((bbox[0], bbox[1])) or self.is_in_zone((bbox[2], bbox[1])) or \
-               self.is_in_zone((bbox[2], bbox[3])) or self.is_in_zone((bbox[0], bbox[3])) or \
-               self.is_centroid_in_zone(bbox)
+        # print(bbox)
+        return self.is_centroid_in_zone(bbox)
+               ##self.is_in_zone((bbox[0], bbox[1])) or self.is_in_zone((bbox[2], bbox[1])) or self.is_in_zone((bbox[2], bbox[3])) or self.is_in_zone((bbox[0], bbox[3])) or self.is_centroid_in_zone(bbox)
 
     def get_id(self):
         return self.__id
@@ -32,6 +32,13 @@ class Zone:
     def find_centroid(bbox):
         cX = int((bbox[0] + bbox[2]) / 2)
         cY = int((bbox[1] + bbox[3]) / 2)
+        return (cX, cY)
+
+    def find_bottom_centroid(bbox):
+        cY = bbox[1]+0.85*(bbox[3]-bbox[1])
+        cX = int((bbox[0] + bbox[2]) / 2)
+        # cY = int((y_offset + 0.2*bbox[3]) / 2 )
+        # print(cX,cY)
         return (cX, cY)
 
     @staticmethod
