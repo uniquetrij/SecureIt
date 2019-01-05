@@ -24,6 +24,9 @@ class BoundBox:
 
         return self.label
 
+    def set_label(self,label):
+        self.label = label
+
     def get_score(self):
         if self.score == -1:
             self.score = self.__classes[self.get_label()]
@@ -58,7 +61,9 @@ class RetailInference(object):
     def get_bboxes(self):
         return self.__bboxes
 
-    def get_annotated(self):
+    def get_annotated(self, bboxes = None):
+        if bboxes is not None:
+            self.__bboxes = bboxes
         if self.__annotated is None:
             self.__annotated = np.copy(self.__image)
             self.draw_boxes()
@@ -73,7 +78,7 @@ class RetailInference(object):
             xmax = int(xmax * image_w)
             ymax = int(ymax * image_h)
 
-            cv2.rectangle(self.__annotated, (xmin, ymin), (xmax, ymax), (0, 255, 0), 3)
+            cv2.rectangle(self.__annotated, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
             # cv2.putText(image,
             #             labels[box.get_label()] + ' ' + str(box.get_score()),
             #             (xmin, ymin - 13),

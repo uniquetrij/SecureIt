@@ -13,3 +13,5 @@ class VideoWriter:
 
     def finish(self):
         self.__out.release()
+
+

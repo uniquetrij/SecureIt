@@ -9,12 +9,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # from tf_api.person_item_association import Person_Item_Association
+from tf_session.tf_session_utils import Pipe
 
 app = Flask(__name__)
 CORS(app)
 
 # person_association = Person_Item_Association()
 processed_zone_camera_feed={}
+stock_in_pipe = Pipe()
 
 @app.route('/hello')
 def hello():
@@ -26,15 +28,15 @@ def hello():
 def zone_entry():
 
     content = request.files('image')
-    # zone_id = content['zone_id']
-    # person_id = content['person_id']
+    zone_id = content['zone_id']
+    person_id = content['person_id']
     # image=content['image_str']
     # print(zone_id,person_id)
-    print(content)
+    print("Zone "+str(zone_id)+" Person : "+str(person_id))
 
     #testing only
 
-    # person_association.start_zone_camera_analysis(person_id,zone_id)
+    person_association.start_zone_camera_analysis(person_id,zone_id)
 
     return jsonify("person tracking and cart analysis started")
 
@@ -43,7 +45,7 @@ def zone_exit():
     content = request.get_json()
     zone_id = content['zone_id']
     person_id = content['person_id']
-
+    print("EXITING: "+zone_id + " " + str(person_id))
     # person_association.stop_zone_camera_analysis()
 
     return Response("person tracking and analysis stopped..")
@@ -136,6 +138,35 @@ def output_video_feed():
 # def live_input_video_feed():
 #     print("in 1")
 #     return Response(LiveProcessing.gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
+# class server:
+#     def __init__(self):
+#         stock_in_pipe = Pipe()
+#     def test(self):
+#         r = request
+#         # convert string of image data to uint8
+#         nparr = np.fromstring(r.data, np.uint8)
+#         # decode image
+#         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+#
+#         self.stock_in_pipe.push(img)
+#         # cv2.imshow("frame",img)
+#
+#         # plt.show()
+#         # print(img.shape)
+#
+#         # cv2.imshow("test",img)
+#         cv2.waitKey(1)
+#
+#         # do some fancy processing here....
+#
+#         # build a response dict to send back to client
+#         response = {'message': 'image received. size={}x{}'.format(img.shape[1], img.shape[0])
+#                     }
+#         # encode response using jsonpickle
+#         response_pickled = jsonpickle.encode(response)
+#
+#         return Response(response=response_pickled, status=200, mimetype="application/json")
+
 
 @app.route('/person_camera_feed', methods=['POST'])
 def test():
@@ -144,13 +175,15 @@ def test():
     nparr = np.fromstring(r.data, np.uint8)
     # decode image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    cv2.imshow("frame",img)
+    # global stock_in_pipe
+    stock_in_pipe.push(img)
+    # cv2.imshow("frame",img)
 
     # plt.show()
     print(img.shape)
 
     # cv2.imshow("test",img)
-    cv2.waitKey(1)
+    # cv2.waitKey(1)
 
     # do some fancy processing here....
 
@@ -164,7 +197,7 @@ def test():
 
 
 def run_flask_server():
-    app.run(host='0.0.0.0', debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', debug=True, use_reloader=False,threaded=True)
 
     # cap = cv2.VideoCapture('http://192.168.31.180:8080/video')
     # while (True):

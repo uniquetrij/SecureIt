@@ -12,7 +12,7 @@ class SiameseComparator(object):
 
     def __init__(self, input_size=128, loss=0):
         self.__model = None
-        self.__input_shape = (None, input_size)
+        self.__input_shape = (input_size, )
         self.__weight_decay = 0.0005
         self.__weight_init = "he_normal"
 

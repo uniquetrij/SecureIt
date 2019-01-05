@@ -66,6 +66,9 @@ class AgeDetection(object):
         frame = inference.get_input()
         faces = self.__detector.detect_faces(frame)
         faces = list_filter(faces, 0.90)
+        # print("mbumber of faces detected", len(faces))
+        # cv2.imshow("frame ", frame)
+        # cv2.waitKey(0)
         # print("faces " ,faces)
         bboxes = []
         face_imgs = np.empty((len(faces), self.__face_size, self.__face_size, 3))

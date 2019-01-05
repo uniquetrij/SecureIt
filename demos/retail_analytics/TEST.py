@@ -1,14 +1,17 @@
 from flask import request,jsonify
-from flask_cors import CORS
-from flask import Flask, render_template, Response
-app = Flask(__name__)
-CORS(app)
-@app.route('/roi_points',methods=["POST"])
-def roi_points():
-    global dict
-    dict=request.get_json()
-    print(dict)
-    return "ok"
+import requests
+
+API_ENDPOINT="http://192.168.43.38:5000/notify_zone_entry"
 
 
-app.run(host='0.0.0.0', debug=True, use_reloader=False, threaded=True)
+def post_response(zone, person):
+    data = {
+        'zone_id': zone,
+        'person_id': person
+    }
+    print("value")
+    r = requests.post(url=API_ENDPOINT, json=data)
+    print("Entry detected :" + str(r))
+    print("value")
+
+post_response("Z1","P1")

@@ -1,18 +1,20 @@
 import cv2
+from data.images import path as images_path
 
 from data.obj_detection.videos import path as videos_path
 from obj_detection.yolo_api.yolo_keras_object_detection_api import YOLOObjectDetectionAPI
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
-# cap = cv2.VideoCapture(-1)
-cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
+cap = cv2.VideoCapture(-1)
+# cap = cv2.VideoCapture(videos_path.get() + '/video1.avi')
 
 session_runner = SessionRunner()
 
 frame_no = 0
 while True:
     ret, image = cap.read()
+    # ret, image = True, cv2.imread(images_path.get() + "/people-walking-commercial-drive-landing.jpg")
     if ret:
         frame_no+=1
         # break
@@ -31,8 +33,9 @@ detection.run()
 
 while True:
     ret, image = cap.read()
+    # ret, image = True, cv2.imread(images_path.get() + "/people-walking-commercial-drive-landing.jpg")
     if not ret:
-        continue
+        continueregion
     detector_ip.push(Inference(image.copy()))
     detector_op.wait()
     ret, inference = detector_op.pull()

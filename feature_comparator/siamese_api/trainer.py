@@ -138,11 +138,79 @@ def train():
                         callbacks=[early_stop, checkpoint, tensorboard]
                         )
 
+def create_dataset():
+    feature_vector = FeatureVector()
+    session_runner = SessionRunner()
+    extractor = MarsExtractorAPI('mars_api', True)
+    ip = extractor.get_in_pipe()
+    op = extractor.get_out_pipe()
+    extractor.use_session_runner(session_runner)
+    session_runner.start()
+    extractor.run()
 
+    file_names = glob.glob('/home/developer/Desktop/Market-1501-v15.09.15/bounding_box_train/*.jpg') + glob.glob('/home/developer/Desktop/Market-1501-v15.09.15/gt_bbox/*.jpg')
+    print(len(file_names))
+    batch_size = 100
+    # stacked_images,_=inp.getstackedimages()
+    csvfile = open("/home/developer/Desktop/reid/market1501/market1501_dataset.csv", "a")
+    for c, image_file in enumerate(file_names):
+        print(c)
+        patch = cv2.imread(image_file)
+        label = int(image_file.split("/")[-1].split("_")[0])
+        f_vec = extract_features(patch, ip, op)
+        # print(f_vec.shape)
+        # print(f_vec[])
+        # break
+        # feature_vector.add_vector(id, f_vec[0])
+        vector = ""
+        # print (f_vec[0].shape)
+        # break
+        for vec in f_vec[0]:
+            vector = vector + "," + str(vec)
+        csvfile.write(str(label) + "," + vector + "\n")
+    csvfile.close()
+    session_runner.stop()
+
+def create_dataset_from_folder():
+    feature_vector = FeatureVector()
+    session_runner = SessionRunner()
+    extractor = MarsExtractorAPI('mars_api', True)
+    ip = extractor.get_in_pipe()
+    op = extractor.get_out_pipe()
+    extractor.use_session_runner(session_runner)
+    session_runner.start()
+    extractor.run()
+
+
+
+    batch_size = 100
+    # stacked_images,_=inp.getstackedimages()
+    csvfile = open("/home/developer/Desktop/reid/market1501/mars_infy_dataset_full_image.csv", "a")
+    for i in range(1,6):
+        file_names = glob.glob('/home/developer/Desktop/mars_test_dataset_full_image/{}/*.jpg'.format(i))
+        print(len(file_names))
+        for c, image_file in enumerate(file_names):
+            print(c)
+            patch = cv2.imread(image_file)
+            label = i
+            f_vec = extract_features(patch, ip, op)
+            # print(f_vec.shape)
+            # print(f_vec[])
+            # break
+            # feature_vector.add_vector(id, f_vec[0])
+            vector = ""
+            # print (f_vec[0].shape)
+            # break
+            for vec in f_vec[0]:
+                vector = vector + "," + str(vec)
+            csvfile.write(str(label) + "," + vector + "\n")
+    csvfile.close()
+    session_runner.stop()
 
 def test():
     model = SiameseComparator()()
-    model.load_weights(model_path.get()+'/siamese-mars-small128.h5')
+    # model.load_weights(model_path.get()+'/siamese-mars-small128.h5')
+    model.load_weights("/home/developer/Desktop/model_12_28_2018_12_02_56.h5")
     model.summary()
     feature_vector = FeatureVector()
     session_runner = SessionRunner()
@@ -154,14 +222,16 @@ def test():
     extractor.run()
     image_files = []
     for id in range(1, 5):
-        image_files.append(glob.glob(
-            input_path.get()+'/patches/{}/*.jpg'.format(id)))
+        # image_files.append(glob.glob(
+        #     input_path.get()+'/patches/{}/*.jpg'.format(id)))
+        image_files.append('/home/developer/Desktop/test/aa/{}.jpg'.format(id))
     print(len(image_files))
-    patch0 = [cv2.imread(image_files[0][randint(0, len(image_files[0]))]) for _ in range (10)]
+    print(image_files)
+    patch0 = [cv2.imread(image_files[0])]
     # patch0_1 = [cv2.imread(image_files[0][randint(0, len(image_files[0]))]) for _ in range(10)]
-    patch1 = [cv2.imread(image_files[1][randint(0, len(image_files[1]))]) for _ in range(10)]
-    patch2 = [cv2.imread(image_files[2][randint(0, len(image_files[2]))]) for _ in range(10)]
-    patch3 = [cv2.imread(image_files[3][randint(0, len(image_files[3]))]) for _ in range (10)]
+    patch1 = [cv2.imread(image_files[1])]
+    patch2 = [cv2.imread(image_files[2])]
+    patch3 = [cv2.imread(image_files[3])]
     #patch_pair = [_ for _ in itertools.combinations_with_replacement([patch0[0], patch1[0], patch2[0], patch3[0]], 2)]
 
     f_vec0 = np.array([extract_features(patch, ip, op)[0] for patch in patch0])
@@ -171,8 +241,83 @@ def test():
     f_vec3 = np.array([extract_features(patch, ip, op)[0] for patch in patch3])
     #print(f_vec1)
 
+    output = model.predict([np.expand_dims(f_vec0, 0), np.expand_dims(f_vec1, 0)])
+    print(output)
+    output = model.predict([np.expand_dims(f_vec0, 0), np.expand_dims(f_vec2, 0)])
+    print(output)
+    output = model.predict([np.expand_dims(f_vec0, 0), np.expand_dims(f_vec3, 0)])
+    print(output)
+    output = model.predict([np.expand_dims(f_vec1, 0), np.expand_dims(f_vec2, 0)])
+    print(output)
     output = model.predict([np.expand_dims(f_vec1, 0), np.expand_dims(f_vec3, 0)])
     print(output)
+    output = model.predict([np.expand_dims(f_vec2, 0), np.expand_dims(f_vec3, 0)])
+    print(output)
+def distance_eval():
+    feature_vector = FeatureVector()
+    session_runner = SessionRunner()
+    extractor = MarsExtractorAPI('mars_api', True)
+    ip = extractor.get_in_pipe()
+    op = extractor.get_out_pipe()
+    extractor.use_session_runner(session_runner)
+    session_runner.start()
+    extractor.run()
+
+    file_names = glob.glob('/home/developer/Desktop/test/aa/*.jpg')
+    print(len(file_names))
+    f_vec_lst = []
+    for c, image_file in enumerate(file_names):
+        print(c)
+        patch = cv2.imread(image_file)
+        # label = i
+        print("file_name", image_file)
+        f_vec = extract_features(patch, ip, op)
+        f_vec_lst.append(f_vec)
+        # print(f_vec.shape)
+        # print(f_vec[])
+        # break
+        # feature_vector.add_vector(id, f_vec[0])
+        vector = ""
+        # print (f_vec[0].shape)
+        # break
+    print(compute_dist(f_vec_lst[0], f_vec_lst[1], type='cosine'))
+    print(compute_dist(f_vec_lst[1], f_vec_lst[2], type='cosine'))
+    print(compute_dist(f_vec_lst[2], f_vec_lst[3], type='cosine'))
+    print(compute_dist(f_vec_lst[0], f_vec_lst[2], type='cosine'))
+    print(compute_dist(f_vec_lst[0], f_vec_lst[3], type='cosine'))
+    session_runner.stop()
+
+def normalize(nparray, order=2, axis=0):
+  """Normalize a N-D numpy array along the specified axis."""
+  norm = np.linalg.norm(nparray, ord=order, axis=axis, keepdims=True)
+  return nparray / (norm + np.finfo(np.float32).eps)
+
+
+def compute_dist(array1, array2, type='euclidean'):
+  """Compute the euclidean or cosine distance of all pairs.
+  Args:
+    array1: numpy array with shape [m1, n]
+    array2: numpy array with shape [m2, n]
+    type: one of ['cosine', 'euclidean']
+  Returns:
+    numpy array with shape [m1, m2]
+  """
+  assert type in ['cosine', 'euclidean']
+  if type == 'cosine':
+    array1 = normalize(array1, axis=1)
+    array2 = normalize(array2, axis=1)
+    dist = np.matmul(array1, array2.T)
+    return dist
+  else:
+    # shape [m1, 1]
+    square1 = np.sum(np.square(array1), axis=1)[..., np.newaxis]
+    # shape [1, m2]
+    square2 = np.sum(np.square(array2), axis=1)[np.newaxis, ...]
+    squared_dist = - 2 * np.matmul(array1, array2.T) + square1 + square2
+    squared_dist[squared_dist < 0] = 0
+    dist = np.sqrt(squared_dist)
+    return dist
+
 
 if __name__ == '__main__':
-    test()
+    create_dataset()
