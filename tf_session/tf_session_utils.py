@@ -72,6 +72,13 @@ class Pipe:
     def is_closed(self):
         return len(self.__lst) == 0 and self.__closed == True
 
+    def flush(self):
+        self.__lock.acquire()
+        try:
+            self.__lst.clear()
+        finally:
+            self.__lock.release()
+
     def wait(self):
         self.__pause_resume.wait()
 
@@ -80,12 +87,16 @@ class Pipe:
 
 
 class Inference:
-    def __init__(self, input, return_pipe=None, meta_dict={}):
+    def __init__(self, input, return_pipe=None, meta_dict={}, flush_pipe=None):
         self.__input = input
         self.__meta_dict = meta_dict
         self.__return_pipe = return_pipe
         self.__data = None
         self.__result = None
+        self.__flush_pipe = flush_pipe
+
+    def set_flush(self, flush_pipe):
+        self.__flush_pipe = flush_pipe
 
     def get_input(self):
         return self.__input
@@ -100,6 +111,8 @@ class Inference:
         self.__result = result
         if self.__return_pipe:
             self.__return_pipe.push(self)
+        if self.__flush_pipe:
+            self.__flush_pipe.flush()
 
     def get_result(self):
         return self.__result

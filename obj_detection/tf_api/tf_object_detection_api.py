@@ -98,6 +98,7 @@ class TFObjectDetectionAPI:
         image = inference.get_input()
         data = np.expand_dims(image, axis=0)
         inference.set_data(data)
+        inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, result):
