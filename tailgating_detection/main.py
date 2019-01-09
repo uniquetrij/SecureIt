@@ -53,7 +53,7 @@ out = cv2.VideoWriter('output.avi', fourcc, 20.0, (np.int32(height), np.int32(wi
 Thread(target=read_video).start()
 
 while True:
-    detector_op.wait()
+    detector_op.pull_wait()
     ret, inference = detector_op.pull()
     if ret:
         i_dets = inference.get_result()

@@ -72,9 +72,9 @@ def readinference():
                     cv2.waitKey(1)
                     break
                 else:
-                    t_op.wait()
+                    t_op.pull_wait()
         else:
-            op0.wait()
+            op0.pull_wait()
 
 
 Thread(target=readinference).start()

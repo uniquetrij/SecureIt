@@ -12,7 +12,7 @@ CORS(app)
 
 def gen_analysis():
     while True:
-        stock_in_pipe.wait()
+        stock_in_pipe.pull_wait()
         ret, image = stock_in_pipe.pull()
         if not ret:
             continue
@@ -22,7 +22,7 @@ def gen_analysis():
 
 def gen_tracking():
     while True:
-        tracking_in_pipe.wait()
+        tracking_in_pipe.pull_wait()
         ret, image = tracking_in_pipe.pull()
         if not ret:
             continue
@@ -31,7 +31,7 @@ def gen_tracking():
 
 def gen_age_api():
     while True:
-        age_in_pipe.wait()
+        age_in_pipe.pull_wait()
         ret, image = age_in_pipe.pull()
         if not ret:
             continue

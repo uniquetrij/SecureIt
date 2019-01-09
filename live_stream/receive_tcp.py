@@ -65,7 +65,7 @@ def gen_video_feed():
     """Video streaming generator function."""
 
     while True:
-        pipe.wait()
+        pipe.pull_wait()
         ret, image = pipe.pull(True)
 
         try:

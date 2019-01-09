@@ -80,7 +80,7 @@ class ImageEncoder:
                 self.data_x = data_x
                 self.__session_runner.add_job(self.__job())
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
     def __job(self):
         __tracking_features = np.zeros((len(self.data_x), self.feature_dim), np.float32)

@@ -137,7 +137,7 @@ class AgeDetection(object):
             if ret:
                 self.__session_runner.get_in_pipe().push(SessionRunnable(self.__job, inference))
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
     def __job(self, inference):
         '''

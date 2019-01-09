@@ -61,7 +61,7 @@ def read():
             continue
         detector_ip.push(Inference(image.copy()))
         # print('waiting')
-        detector_op.wait()
+        detector_op.pull_wait()
         # print('done')
         ret, inference = detector_op.pull()
         if ret:
@@ -76,7 +76,7 @@ video_writer = VideoWriter(out_path.get()+"/t_mobile_demo_out_4.avi",image.shape
 
 while True:
     # print(detector_op.is_closed())
-    trk_op.wait()
+    trk_op.pull_wait()
     if trk_ip.is_closed():
         # print("Here")
         video_writer.finish()

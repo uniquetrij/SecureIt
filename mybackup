@@ -99,7 +99,7 @@ class RetailAnalytics():
 
         def gen_analysis():
                 while True:
-                    image_in_pipe.wait()
+                    image_in_pipe.pull_wait()
                     ret, image = image_in_pipe.pull()
                     if not ret:
                         continue
@@ -342,7 +342,7 @@ class Pipeline():
 
     def gen_tracking(self):
         while True:
-            tracking_in_pipe.wait()
+            tracking_in_pipe.pull_wait()
             ret, image = tracking_in_pipe.pull()
             if not ret:
                 continue
@@ -351,7 +351,7 @@ class Pipeline():
 
     def gen_age_api(self):
         while True:
-            age_in_pipe.wait()
+            age_in_pipe.pull_wait()
             ret, image = age_in_pipe.pull()
             if not ret:
                 continue

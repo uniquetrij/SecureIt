@@ -82,7 +82,7 @@ trk_op = tracker.get_out_pipe()
 tracker.run()
 
 retail_an_object = RetailAnalytics()
-zone_image_update.wait()
+zone_image_update.pull_wait()
 ret, flag = zone_image_update.pull()
 # if ret and flag:
 #     while True:
@@ -93,7 +93,7 @@ ret, flag = zone_image_update.pull()
 #             cv2.imwrite('../../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
 #             print("After Write")
 #             break
-point_set.wait()
+point_set.pull_wait()
 ret, point_set_dict = point_set.pull()
 margin = 100
 points = None
@@ -121,7 +121,7 @@ def read():
         # count+=1
         # image = cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2)))
         detector_ip.push(Inference(image))
-        detector_op.wait()
+        detector_op.pull_wait()
         ret, inference = detector_op.pull()
         if ret:
             i_dets = inference.get_result()
@@ -132,7 +132,7 @@ def read():
 
 def infer_yolo(timestamp, margin, points):
     while True:
-        yolo_input.wait()
+        yolo_input.pull_wait()
         ret, image = yolo_input.pull(flush=True)
         if not ret:
             continue
@@ -155,7 +155,7 @@ def infer_yolo(timestamp, margin, points):
 
         inference.get_meta_dict()['warp_points'] = retail_an_object.rack_dict
         yolo_ip.push(inference)
-        yolo_op.wait()
+        yolo_op.pull_wait()
         ret, inference = yolo_op.pull()
         ret1, zones = zone_detection_in_pipe.pull()
         if ret:
@@ -196,7 +196,7 @@ video_writer = VideoWriter(out_path.get() + "/t_mobile_demo_out_{}.avi".format(t
 
 while True:
     # print(detector_op.is_closed())
-    trk_op.wait()
+    trk_op.pull_wait()
     if trk_ip.is_closed():
         # print("Here")
         video_writer.finish()

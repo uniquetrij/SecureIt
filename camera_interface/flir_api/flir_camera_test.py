@@ -9,7 +9,7 @@ try:
     time1 = time.time()
     count = 0
     while True:
-        flir_op.wait()
+        flir_op.pull_wait()
         frame = flir_op.pull()[1]
         # print(np.sum(frame[0] - frame[1]))
         count+=1
