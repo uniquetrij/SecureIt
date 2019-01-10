@@ -104,7 +104,7 @@ class Sort:
                 self.data_tuple = data_tuple
                 self.__session_runner.add_job(self.__job())
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
     def __job(self):
         f_vecs = self.__image_encoder.extract_features(self.data_tuple[0], self.data_tuple[1])

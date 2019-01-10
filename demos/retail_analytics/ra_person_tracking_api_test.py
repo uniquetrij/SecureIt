@@ -2,6 +2,10 @@ import json
 import time
 from datetime import datetime
 from threading import Thread
+####
+import sys
+sys.path.append('../../')
+####
 from demos.retail_analytics import multithreading as mlt
 from age_detection_api.age_detection import age_api_runner
 
@@ -25,15 +29,18 @@ session_runner = SessionRunner()
 session_runner.start()
 
 # cap = cv2.VideoCapture(videos_path.get() + '/ra_rafee_cabin_1.mp4')
-cap = cv2.VideoCapture(0)
+#Camera Id For Tracking and Object Detection
+cap = cv2.VideoCapture(1)
 
 img_shape = None
 while True:
     ret, image = cap.read()
+    print("before if and ret value", ret )
     if ret:
         # print(image.shape)
         img_shape = image.shape
-        cv2.imwrite('/home/developer/workspaces/Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+        cv2.imwrite('../../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+        # cv2.imwrite('/home/developer/workspaces/Angular-Dashboard-master/src/assets/rack_image.jpg', image)
         break
 
 # detector =  YOLOObjectDetectionAPI('yolo_api', True)
@@ -63,8 +70,10 @@ tracking_in_pipe = mlt.tracking_in_pipe
 stock_in_pipe = mlt.stock_in_pipe
 point_set = mlt.point_set_pipe
 zone_pipe = mlt.zone_pipe
-# age_in_pipe = mlt.age_in_pipe
-# age_api_runner.runner(age_in_pipe, session_runner, cam_id=1)
+age_in_pipe = mlt.age_in_pipe
+zone_image_update = mlt.zone_image_update
+#Camera Id For Age Detection
+age_api_runner.runner(age_in_pipe, session_runner, cam_id=2)
 
 tracker = OFISTObjectTrackingAPI(flush_pipe_on_read=True, use_detection_mask=False, conf_path=input_path.get() + "/demo_zones_1.csv")
 tracker.use_session_runner(session_runner)
@@ -73,12 +82,27 @@ trk_op = tracker.get_out_pipe()
 tracker.run()
 
 retail_an_object = RetailAnalytics()
-point_set.wait()
+zone_image_update.pull_wait()
+ret, flag = zone_image_update.pull()
+# if ret and flag:
+#     while True:
+#         ret, image = cap.read()
+#         if ret:
+#             # print(image.shape)
+#             img_shape = image.shape
+#             cv2.imwrite('../../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+#             print("After Write")
+#             break
+point_set.pull_wait()
 ret, point_set_dict = point_set.pull()
 margin = 100
+points = None
+# v_stacks = config["global_init"]["v_stack"]
+# h_stacks = config["global_init"]["h_stack"]
 if ret:
-    point_set_dict['point_set_2'] = [[0, margin], [img_shape[1]-2*margin, margin],
-                                             [img_shape[1]-2*margin, img_shape[0]-margin], [0, img_shape[0]-margin]]
+    point_set_dict['point_set_2'] = [[0, 0.6*margin], [img_shape[1]-4.25*margin, 0.6*margin],
+                                             [img_shape[1]-4.25*margin, img_shape[0]-0.6*margin], [0, img_shape[0]-0.6*margin]]
+    points = point_set_dict['point_set_2']
     retail_an_object.rack_dict = point_set_dict
     retail_an_object.global_init()
 timestamp  = time.time()
@@ -97,7 +121,7 @@ def read():
         # count+=1
         # image = cv2.resize(image, (int(image.shape[1] / 2), int(image.shape[0] / 2)))
         detector_ip.push(Inference(image))
-        detector_op.wait()
+        detector_op.pull_wait()
         ret, inference = detector_op.pull()
         if ret:
             i_dets = inference.get_result()
@@ -106,25 +130,32 @@ def read():
             trk_ip.push(infer_idets)
 
 
-def infer_yolo(timestamp, margin):
+def infer_yolo(timestamp, margin, points):
     while True:
-        yolo_input.wait()
+        yolo_input.pull_wait()
         ret, image = yolo_input.pull(flush=True)
         if not ret:
             continue
+
+        # ret, flag = zone_image_update.pull()
+        # if ret and flag:
+        #     cv2.imwrite('../../../Angular-Dashboard-master/src/assets/rack_image.jpg', image)
+        #     print("After Update")
+
         inference = Inference(image)
         img_shape = image.shape
         ret, point_set_dict = point_set.pull()
         if ret:
-            point_set_dict["point_set_2"] = [[margin, margin], [img_shape[1]-margin, margin],
-                                             [img_shape[1]-margin, img_shape[0]-margin], [margin, img_shape[0]-margin]]
+            point_set_dict["point_set_2"] = [[0, 0.6*margin], [img_shape[1]-4.25*margin, 0.6*margin],
+                                             [img_shape[1]-4.25*margin, img_shape[0]-0.6*margin], [0, img_shape[0]-0.6*margin]]
             print("updated points")
+            points = point_set_dict['point_set_2']
             retail_an_object.rack_dict = point_set_dict
             retail_an_object.global_init()
 
         inference.get_meta_dict()['warp_points'] = retail_an_object.rack_dict
         yolo_ip.push(inference)
-        yolo_op.wait()
+        yolo_op.pull_wait()
         ret, inference = yolo_op.pull()
         ret1, zones = zone_detection_in_pipe.pull()
         if ret:
@@ -146,6 +177,9 @@ def infer_yolo(timestamp, margin):
                         # pass
                         Thread(target=retail_an_object.postdata).start()
                         timestamp = time.time()
+
+            # print("left corner: ",points[0][1])
+            image = image[int(points[0][1] - margin/2):int(points[2][1] + margin/2), int(points[0][0]):int(points[2][0] + margin/2), :]
             stock_in_pipe.push(image)
             # cv2.imshow("retail_out", image)
             # cv2.waitKey(1)
@@ -155,14 +189,14 @@ def infer_yolo(timestamp, margin):
 t = Thread(target=read)
 t.start()
 
-thread1 = Thread(target=infer_yolo, args=(timestamp, margin,))
+thread1 = Thread(target=infer_yolo, args=(timestamp, margin, points,))
 thread1.start()
 
 video_writer = VideoWriter(out_path.get() + "/t_mobile_demo_out_{}.avi".format(time.strftime('%Y_%m_%d_%H_%M')), image.shape[1], image.shape[0], 25)
 
 while True:
     # print(detector_op.is_closed())
-    trk_op.wait()
+    trk_op.pull_wait()
     if trk_ip.is_closed():
         # print("Here")
         video_writer.finish()

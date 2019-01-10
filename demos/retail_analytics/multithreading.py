@@ -12,7 +12,7 @@ CORS(app)
 
 def gen_analysis():
     while True:
-        stock_in_pipe.wait()
+        stock_in_pipe.pull_wait()
         ret, image = stock_in_pipe.pull()
         if not ret:
             continue
@@ -22,7 +22,7 @@ def gen_analysis():
 
 def gen_tracking():
     while True:
-        tracking_in_pipe.wait()
+        tracking_in_pipe.pull_wait()
         ret, image = tracking_in_pipe.pull()
         if not ret:
             continue
@@ -31,7 +31,7 @@ def gen_tracking():
 
 def gen_age_api():
     while True:
-        age_in_pipe.wait()
+        age_in_pipe.pull_wait()
         ret, image = age_in_pipe.pull()
         if not ret:
             continue
@@ -43,6 +43,7 @@ tracking_in_pipe = Pipe()
 age_in_pipe = Pipe()
 point_set_pipe = Pipe()
 zone_pipe = Pipe()
+zone_image_update = Pipe()
 dict={'point_set_1':[[103, 13], [551, 14], [535, 341], [114, 343]],'point_set_2':[[99, 11], [552, 13], [542, 339], [108, 342]]}
 @app.route('/live_stock_feed')
 def live_stock_feed():
@@ -76,6 +77,13 @@ def roi_points():
 def live_age_feed():
     return Response(gen_age_api(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/update_zone_image')
+def update_zone_image():
+    flag = True
+    zone_image_update.push(flag)
+    print("update image successful")
+    return "ok"
 
 
 def run():

@@ -69,7 +69,7 @@ def extract_features(patch, ip, op):
     patch[1] = cv2.equalizeHist(patch[1])
     patch[2] = cv2.equalizeHist(patch[2])
     ip.push(Inference(patch, meta_dict={}))
-    op.wait()
+    op.pull_wait()
     ret, feature_inference = op.pull()
     if ret:
         return feature_inference.get_result()

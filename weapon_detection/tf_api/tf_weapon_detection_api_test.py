@@ -44,6 +44,6 @@ if __name__ == '__main__':
             cv2.imwrite("/home/developer/Desktop/folder/" + (str(count).zfill(5)) + ".jpg", frame)
             count += 1
         else:
-            ret_pipe.wait()
+            ret_pipe.pull_wait()
 
     session_runner.stop()

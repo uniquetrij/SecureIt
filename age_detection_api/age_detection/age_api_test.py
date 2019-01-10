@@ -40,7 +40,7 @@ t = Thread(target=read_video)
 t.start()
 
 while True:
-    detector_op.wait()
+    detector_op.pull_wait()
     ret, inference = detector_op.pull(True)
     if ret:
         i_dets = inference.get_result()

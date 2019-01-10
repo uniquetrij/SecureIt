@@ -39,7 +39,7 @@ class Trail:
     def __update_zone(self, bbox, timestamp):
         self.__curr_zones = []
         for zone in self.__zones:
-            if zone.is_bbox_in_zone(bbox):
+            if zone.is_person_in_zone(bbox):
                 index = zone.get_id()
                 self.__curr_zones.append(zone)
                 if index not in self.__entries:

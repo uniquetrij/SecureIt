@@ -61,7 +61,7 @@ def load():
 def display():
     global inference
     while (True):
-        detector_op.wait()
+        detector_op.pull_wait()
         ret, inference = detector_op.pull(True)
         # print("done----------------------------")
 

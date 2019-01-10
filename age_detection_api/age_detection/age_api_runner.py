@@ -38,7 +38,7 @@ def read_video(detector_ip, cap):
 
 def push_output(detector_op, tracker, age_in_pipe):
     while True:
-        detector_op.wait()
+        detector_op.pull_wait()
         ret, inference = detector_op.pull(True)
         if ret:
             i_dets = inference.get_result()

@@ -45,7 +45,7 @@ class SessionRunner:
                     raise Exception("Pipe elements must be a SessionFunction")
                 sess_fnc.execute(self.__tf_sess)
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
 class SessionRunnable:
     def __init__(self, job_fnc, args_dict, run_on_thread=False):

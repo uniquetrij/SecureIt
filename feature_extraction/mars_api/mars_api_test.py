@@ -47,6 +47,6 @@ if __name__ == '__main__':
         if ret:
             print(feature_inference.get_result().shape)
         else:
-            ret_pipe.wait()
+            ret_pipe.pull_wait()
 
     session_runner.stop()

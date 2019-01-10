@@ -144,7 +144,7 @@ class TFWeaponDetectionAPI:
                 self.__session_runner.get_in_pipe().push(
                     (self.__job, inference))
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
     def __job(self, inference):
         self.__out_pipe.push(

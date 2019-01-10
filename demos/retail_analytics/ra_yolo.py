@@ -115,7 +115,7 @@ class YOLO(object):
                 self.__session_runner.get_in_pipe().push(
                     SessionRunnable(self.__job, inference, run_on_thread=self.__run_session_on_thread))
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
     def __job(self, inference):
         data = inference.get_data()

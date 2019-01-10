@@ -229,7 +229,7 @@ class OFISTObjectTrackingAPI:
             if ret:
                 self.__job(inference)
             else:
-                self.__in_pipe.wait()
+                self.__in_pipe.pull_wait()
 
     def __job(self, inference):
         self.__enc_in_pipe.push(

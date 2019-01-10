@@ -1,5 +1,6 @@
 import matplotlib.path as mplPath
 import numpy as np
+from shapely.geometry import Polygon
 
 # from utils.csv_reader import read_csv
 from utils.csv_reader import read_csv
@@ -13,6 +14,15 @@ class Zone:
 
     def is_in_zone(self, point):
         return self.__zone_path.contains_point(point)
+
+    def is_person_in_zone(self, bbox):
+        self.__quad = Polygon(self.__coords)
+        bbox_pts = [[bbox[0], bbox[1]], [bbox[2], bbox[1]], [bbox[2], bbox[3]], [bbox[0], bbox[3]]]
+        bbox_quad = Polygon(bbox_pts)
+        if self.__quad.intersection(bbox_quad).area > 0:
+            return True
+        else:
+            return False
 
     def is_centroid_in_zone(self, bbox):
         return self.is_in_zone(Zone.find_bottom_centroid(bbox))

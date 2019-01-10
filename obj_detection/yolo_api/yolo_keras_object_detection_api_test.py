@@ -34,7 +34,7 @@ while True:
     if not ret:
         continue
     detector_ip.push(Inference(image.copy()))
-    detector_op.wait()
+    detector_op.pull_wait()
     ret, inference = detector_op.pull()
     if ret:
         i_dets = inference.get_result()

@@ -84,7 +84,7 @@ while True:
         cv2.imshow(name, frame)
         cv2.waitKey(1)
     else:
-        op.wait()
+        op.pull_wait()
 
 # t = Thread(target=process, args=(op0,"cam0", tracker))
 # t.start()

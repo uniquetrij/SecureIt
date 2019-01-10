@@ -558,7 +558,7 @@ if __name__ == '__main__':
             cv2.waitKey(1)
 
         else:
-            op0.wait()
+            op0.pull_wait()
 
     cap0.release()
     out.release()
