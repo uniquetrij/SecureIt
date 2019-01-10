@@ -4,14 +4,18 @@ import threading
 from os.path import dirname, realpath
 from threading import Thread
 import tensorflow as tf
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from tf_session.tf_session_utils import Pipe
 
 
 class SessionRunner:
     __config = tf.ConfigProto(log_device_placement=False)
     __config.gpu_options.allow_growth = True
+    __config.gpu_options.per_process_gpu_memory_fraction = True  # GPU for multiple processes
+    __config.gpu_options.per_process_gpu_memory_fraction = 0.3
     __counter = 0
+
 
     def __init__(self):
         self.__self_dir_path = dirname(realpath(__file__))

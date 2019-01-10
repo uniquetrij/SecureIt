@@ -72,6 +72,8 @@ class YOLO(object):
         data = (self.__prepare_data(warped_image), dummy_array)
         inference.set_data(data)
         inference.get_meta_dict()['warped_image'] = warped_image
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, result):

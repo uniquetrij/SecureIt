@@ -2,7 +2,7 @@ import time
 import requests
 from person.person_metadata import Person
 
-API_ENDPOINT = "http://192.168.43.55:5000/notify_zone_entry"
+API_ENDPOINT = "http://localhost:5000/notify_zone_entry"
 
 class Trail:
 
@@ -69,7 +69,7 @@ class Trail:
         person_gender = None
         person_age = None
         person_age_list = self.__person.get_age_list()
-        person_gender_list = self.__person.get_age_list()
+        person_gender_list = self.__person.get_gender_list()
         gender_on_confidence_score = self.__person.get_gender_on_confidence_score()
         if len(person_age_list) != 0:
             person_age = int(sum(person_age_list) / len(person_age_list))
@@ -77,7 +77,8 @@ class Trail:
             if person_gender_list.count('M') == person_gender_list.count('F'):
                 person_gender = gender_on_confidence_score
             else:
-                person_gender = max(person_gender_list, key=person_age_list.count)
+                # person_gender = max(person_gender_list, key=person_age_list.count)
+                person_gender = 'M' if person_gender_list.count('M') > person_gender_list.count('F') else 'F'
 
         data = {
             'zone_id': zone,
@@ -85,8 +86,12 @@ class Trail:
             'person_age': str(person_age) if person_age else "Unknown",
             'person_gender': person_gender if person_gender else "Unknown"
         }
-        # r=requests.post(url=API_ENDPOINT, json=data)
-        # print("Entry detected :"+str(r))
+        try:
+            r=requests.post(url=API_ENDPOINT, json=data)
+            print("Entry detected :"+str(r))
+        except:
+            pass
+
         print(data)
 
     def get_current_zones(self):

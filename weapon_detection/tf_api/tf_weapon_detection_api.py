@@ -65,6 +65,8 @@ class TFWeaponDetectionAPI:
         image = inference.get_input()
         data = np.expand_dims(image, axis=0)
         inference.set_data(data)
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, result):

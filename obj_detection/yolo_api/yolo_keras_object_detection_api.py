@@ -89,6 +89,8 @@ class YOLOObjectDetectionAPI():
 
         inference.set_data(data)
         inference.get_meta_dict()['PIL'] = pil_image
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
         # return image
 

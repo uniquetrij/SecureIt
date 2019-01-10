@@ -45,6 +45,8 @@ class MarsExtractorAPI:
             data.append(self.__preprocess(img))
         # data = np.array(data)
         inference.set_data(data)
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, result):

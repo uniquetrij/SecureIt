@@ -65,7 +65,7 @@ def from_image(image,count):
 
             print("Here!!!")
             print("creating zones")
-            with open("/home/developer/PycharmProjects/SecureIt/data/demos/retail_analytics/inputs/demo_zones.csv",'a') as f:
+            with open("/home/developer/PycharmProjects/SecureIt/data/demos/retail_analytics/inputs/demo_zones.csv",'w+') as f:
                 text = "Z"+str(count)+","+str(points[0][0])+","+str(points[0][1])+","+str(points[1][0])+","+str(points[1][1])+","+str(points[2][0])+","+str(points[2][1])+","+str(points[3][0])+","+str(points[3][1])+"\n"
                 print(text)
                 f.write(text)
@@ -97,7 +97,7 @@ def from_image(image,count):
 
 
 if __name__ == '__main__':
-    cap = cv2.VideoCapture(-1)
+    cap = cv2.VideoCapture(4)
     ret = False
     while not ret:
         ret, frame = cap.read()

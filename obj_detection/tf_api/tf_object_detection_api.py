@@ -1,5 +1,6 @@
 import os
 import tarfile
+import time
 from os import path
 from os.path import realpath, dirname
 from threading import Thread
@@ -98,6 +99,8 @@ class TFObjectDetectionAPI:
         image = inference.get_input()
         data = np.expand_dims(image, axis=0)
         inference.set_data(data)
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, result):
@@ -171,7 +174,7 @@ class TFObjectDetectionAPI:
 
     def __run(self):
         while self.__thread:
-
+            # start_time = time.time()
             if self.__in_pipe.is_closed():
                 self.__out_pipe.close()
                 return
@@ -182,7 +185,7 @@ class TFObjectDetectionAPI:
                     SessionRunnable(self.__job, inference, run_on_thread=self.__run_session_on_thread))
             else:
                 self.__in_pipe.wait()
-
+            # print("run_thread timings {} ".format(time.time()-start_time))
     def __job(self, inference):
         self.__out_pipe.push(
             (self.__tf_sess.run(self.__tensor_dict, feed_dict={self.__image_tensor: inference.get_data()}), inference))

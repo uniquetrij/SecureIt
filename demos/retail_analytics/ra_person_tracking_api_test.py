@@ -4,7 +4,7 @@ from datetime import datetime
 from threading import Thread
 ####
 import sys
-import jsonpickle as jsonpickle
+# import jsonpickle as jsonpickle
 from flask import Flask, render_template, Response
 import cv2
 import os.path
@@ -12,6 +12,8 @@ from flask_cors import CORS
 from flask import request
 from flask import jsonify
 import numpy as np
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 sys.path.append('../../')
 ####

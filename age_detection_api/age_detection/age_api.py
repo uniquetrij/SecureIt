@@ -82,6 +82,8 @@ class AgeDetection(object):
         age_inference = AgeInference(frame, bboxes=bboxes)
         inference.set_result(age_inference)
         inference.set_data(face_imgs)
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, inference):

@@ -2,7 +2,7 @@ import random
 from threading import Thread
 
 import cv2
-
+import time
 from feature_extraction.rn50_api.resnet50_api import ResNet50ExtractorAPI
 from feature_extraction.mars_api.mars_api import MarsExtractorAPI
 from obj_tracking.ofist_api import retinex, enhancer
@@ -13,7 +13,8 @@ from obj_tracking.ofist_api.zone import Zone
 from tf_session.tf_session_utils import Pipe, Inference
 import numpy as np
 
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 class OFISTObjectTrackingAPI:
 
     def __init__(self, max_age=10000, min_hits=5, flush_pipe_on_read=False, use_detection_mask=False, conf_path=None):
@@ -135,6 +136,8 @@ class OFISTObjectTrackingAPI:
 
         inference.set_data(patches)
         inference.get_meta_dict()['bboxes'] = bboxes
+        if inference.get_return_pipe():
+            inference.set_flush(self.__out_pipe)
         return inference
 
     def __out_pipe_process(self, inference):
@@ -153,6 +156,7 @@ class OFISTObjectTrackingAPI:
         #     trk.update_zones(self.__zones)
 
         # association of detections with trackers
+
         matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
                                                                                            self.__session_runner.get_session().graph)
         # matched, unmatched_dets, unmatched_trks = Tracker.associate_detections_to_trackers(f_vecs, self.trackers,
@@ -184,8 +188,9 @@ class OFISTObjectTrackingAPI:
             #
         inference.get_meta_dict()['trails'] = trails
         #test for age_gender
+        st_time = time.time()
         Tracker.detect_age_gender(self.trackers)
-
+        # print("age gender time", time.time() - st_time)
         if (len(ret) > 0):
             inference.set_result(ret)
         else:

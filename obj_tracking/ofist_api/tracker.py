@@ -11,7 +11,8 @@ from person.person_metadata import Person
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
-
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 
 class AgeApiRunner(object):
@@ -140,10 +141,11 @@ class Tracker(object):
 
         if (len(trackers) == 0):
             return np.empty((0, 2), dtype=int), np.arange(len(f_vecs)), np.empty((0, 4), dtype=int)
-
+        # start_time = time.time()
         similarity_matrix = np.zeros((len(f_vecs), len(trackers)), dtype=np.float32)
 
         for d, det in enumerate(f_vecs):
+
             for t, trk in enumerate(trackers):
                 # x1, y1 = bboxes[d][0], bboxes[d][1]
                 # x2, y2 = trk.get_bbox()[0], trk.get_bbox()[1]
@@ -153,9 +155,9 @@ class Tracker(object):
                 # if ((abs(float(y2-y1)**2 - float(x2-x1)**2)**0.5)) < 25:
                 #     print((abs(float(y2 - y1) ** 2 - float(x2 - x1) ** 2) ** 0.5))
                 #     print(d,t)
-                # similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
+                similarity_matrix[d, t] = Tracker.get_cosine_similarity(trk, det)
 
-                similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
+                # similarity_matrix[d, t] = Tracker.siamese_comparator(trk, det, graph)
         '''The linear assignment module tries to minimise the total assignment cost.
         In our case we pass -iou_matrix as we want to maximise the total IOU between track predictions and the frame detection.'''
         #print("   ----------------matrix")
@@ -196,7 +198,7 @@ class Tracker(object):
             matches = np.empty((0, 2), dtype=int)
         else:
             matches = np.concatenate(matches, axis=0)
-
+        # print("function track time taken {}".format( time.time() - start_time))
         return matches, np.array(unmatched_detections), np.array(unmatched_trackers)
 
     @staticmethod
@@ -237,9 +239,11 @@ class Tracker(object):
 
     @staticmethod
     def detect_age_gender(trackers):
+        # start_time = time.time()
         if not Tracker.__age_inference:
             print("initializing Age Model")
             Tracker.__age_inference = AgeApiRunner(SessionRunner())
+        # print(len(trackers))
         detector_ip = Tracker.__age_inference.get_detector_ip()
         detector_op = Tracker.__age_inference.get_detector_op()
         for i, trk in enumerate(trackers):
@@ -270,6 +274,7 @@ class Tracker(object):
                     print("genders", trk.get_trail().get_person().get_gender_list())
                     break
                 # Inference.
+        # print("age_time = {} ".format(start_time - time.time()))
 
 
 
