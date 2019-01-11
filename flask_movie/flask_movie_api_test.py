@@ -22,12 +22,15 @@ def gen(cap, pipe):
 if __name__ == '__main__':
     cap0 = cv2.VideoCapture(0)
     cap1 = cv2.VideoCapture(1)
+
     pipe0 = Pipe(limit=1)
     pipe1 = Pipe(limit=1)
+
     fs = FlaskMovieAPI()
     Thread(target=fs.get_app().run, args=("0.0.0.0",)).start()
     fs.create('store_feed', pipe0)
     fs.create('shelf_feed', pipe1)
+    fs.create('stock_feed', pipe1)
 
     Thread(target=gen, args=(cap0, pipe0,)).start()
     Thread(target=gen, args=(cap1, pipe1,)).start()

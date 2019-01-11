@@ -1,12 +1,6 @@
-from threading import Thread
-from time import sleep
-
 import cv2
-from flask import Flask, jsonify, json, stream_with_context, render_template, Response
+from flask import Flask, Response
 from flask_cors import CORS
-
-from tf_session.tf_session_utils import Pipe
-
 
 class FlaskMovieAPI:
 

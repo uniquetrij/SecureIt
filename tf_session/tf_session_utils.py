@@ -17,7 +17,7 @@ class VideoStreamer:
 
 
 class Pipe:
-    def __init__(self, process=None, limit=5):
+    def __init__(self, process=None, limit=None):
         self.__lst = []
         self.__lock = Lock()
         self.__closed = False
@@ -43,6 +43,9 @@ class Pipe:
         if self.__process:
             obj = self.__process(obj)
 
+        if object is None:
+            return
+
         self.__lock.acquire()
         try:
             self.__lst.append(obj)
@@ -54,8 +57,6 @@ class Pipe:
             return False
         finally:
             self.__lock.release()
-
-
 
     def pull(self, flush=False):
         if self.is_closed():
