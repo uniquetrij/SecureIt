@@ -116,6 +116,8 @@ class TFObjectDetectionAPI:
                                    masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
                                    annotator=self.annotate)
         inference.set_result(result)
+        if inference.get_return_pipe():
+            return '\0'
         return inference
 
     def get_in_pipe(self):

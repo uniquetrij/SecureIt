@@ -43,6 +43,9 @@ class Pipe:
         if self.__process:
             obj = self.__process(obj)
 
+        if obj is '\0':
+            return
+
         self.__lock.acquire()
         try:
             self.__lst.append(obj)
