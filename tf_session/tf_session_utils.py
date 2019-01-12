@@ -90,11 +90,11 @@ class Pipe:
     def is_closed(self):
         return len(self.__lst) == 0 and self.__closed == True
 
-    def pull_wait(self):
-        self.__pullable.wait()
+    def pull_wait(self, timeout=None):
+        self.__pullable.wait(timeout)
 
-    def push_wait(self):
-        self.__pushable.wait()
+    def push_wait(self, timeout=None):
+        self.__pushable.wait(timeout)
 
     def join(self, pipe):
         self.__joint.append(pipe)

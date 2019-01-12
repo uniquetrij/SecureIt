@@ -2,16 +2,12 @@ from threading import Thread
 from time import sleep
 
 import cv2
-from data.obj_tracking.videos import path as videos_path
 from flask_movie.flask_movie_api import FlaskMovieAPI
 
 from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
     PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference, Pipe
-
-# cap0 = cv2.VideoCapture(0)
-# cap1 = cv2.VideoCapture(1)
 
 session_runner = SessionRunner()
 detection = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_01_28, None, 'tf_api', True)
@@ -21,6 +17,7 @@ detection.use_session_runner(session_runner)
 detection.use_threading()
 session_runner.start()
 detection.run()
+
 
 def detect_objects(cap, pipe, default):
     if not default:
@@ -51,6 +48,7 @@ def detect_objects(cap, pipe, default):
             i_dets = inference.get_result()
             pipe.push(i_dets.get_annotated())
 
+
 if __name__ == '__main__':
     cap0 = cv2.VideoCapture(0)
     cap1 = cv2.VideoCapture(1)
@@ -58,15 +56,10 @@ if __name__ == '__main__':
     pipe0 = Pipe(limit=1)
     pipe1 = Pipe(limit=1)
 
-
     fs = FlaskMovieAPI()
     Thread(target=fs.get_app().run, args=("0.0.0.0",)).start()
     fs.create('store_feed', pipe0)
     fs.create('shelf_feed', pipe1)
 
-    Thread(target=detect_objects, args=(cap0, pipe0, True,)).start()
+    Thread(target=detect_objects, args=(cap0, pipe0, False,)).start()
     Thread(target=detect_objects, args=(cap1, pipe1, False,)).start()
-
-
-
-
