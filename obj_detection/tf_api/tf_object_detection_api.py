@@ -117,7 +117,8 @@ class TFObjectDetectionAPI:
                                    annotator=self.annotate)
         inference.set_result(result)
         if inference.get_return_pipe():
-            return None
+            return '\0'
+
         return inference
 
     def get_in_pipe(self):
