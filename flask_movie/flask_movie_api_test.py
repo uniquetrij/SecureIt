@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # pipe1 = Pipe(limit=1)
     fs = FlaskMovieAPI()
     Thread(target=fs.get_app().run, args=("0.0.0.0",)).start()
-    default = cv2.imread('/home/developer/Desktop/infosys.jpg')
+    default = cv2.imread('/home/developer/Desktop/be-the-navigator.png')
     fs.create('store_feed', pipe0, default)
     # fs.create('shelf_feed', pipe1)
 
