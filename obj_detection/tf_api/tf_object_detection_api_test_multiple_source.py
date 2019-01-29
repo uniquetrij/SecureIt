@@ -20,10 +20,11 @@ detection.use_threading()
 session_runner.start()
 detection.run()
 
+sleep(5)
 
 def detect_objects(cap, pipe, default):
     if not default:
-        ret_pipe = Pipe()
+        ret_pipe = Pipe(limit=1)
     else:
         ret_pipe = None
 
@@ -33,38 +34,50 @@ def detect_objects(cap, pipe, default):
             if not ret:
                 continue
             inference = Inference(image.copy(), return_pipe=ret_pipe)
-            detector_ip.push_wait()
-            detector_ip.push(inference)
-            sleep(0.1)
+            if not detector_ip.push(inference):
+                detector_ip.push_wait()
 
     Thread(target=start_cam).start()
-
+    ts = 0;
     while True:
         if not default:
-            ret_pipe.pull_wait()
             ret, inference = ret_pipe.pull(True)
+            if not ret:
+                ret_pipe.pull_wait()
+            else:
+                ret_pipe.flush()
         else:
             detector_op.pull_wait()
             ret, inference = detector_op.pull(True)
+            if not ret:
+                detector_op.pull_wait()
+            else:
+                detector_op.flush()
         if ret:
+            # if inference.ts < ts:
+            #     continue
             i_dets = inference.get_result()
             pipe.push(i_dets.get_annotated())
+            ts = inference.ts
+
+
 
 
 
 if __name__ == '__main__':
     cap0 = cv2.VideoCapture(0)
-    cap1 = cv2.VideoCapture(1)
+    # cap0 = cv2.VideoCapture()
+    # cap0 = cv2.VideoCapture("rtsp://admin:admin123@192.168.0.3")
 
-    pipe0 = Pipe(limit=1)
-    pipe1 = Pipe(limit=1)
+    pipe0 = Pipe(limit=None)
+    # pipe1 = Pipe(limit=1)
 
     fs = FlaskMovieAPI()
     Thread(target=fs.get_app().run, args=("0.0.0.0",)).start()
-    fs.create('store_feed', pipe0)
-    fs.create('shelf_feed', pipe1)
+    fs.create('feed_0', pipe0)
+    # fs.create('shelf_feed', pipe1)
 
 
-    Thread(target=detect_objects, args=(cap0, pipe0, False,)).start()
-    Thread(target=detect_objects, args=(cap1, pipe1, False,)).start()
+    Thread(target=detect_objects, args=(cap0, pipe0, True,)).start()
+    # Thread(target=detect_objects, args=(cap1, pipe1, False,)).start()
 

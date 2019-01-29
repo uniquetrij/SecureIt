@@ -1,5 +1,6 @@
 import threading
 from threading import Lock
+from time import time
 
 
 class VideoStreamer:
@@ -102,6 +103,16 @@ class Pipe:
             return False
         return len(self.__lst)>=self.__limit
 
+    def flush(self):
+        self.__lock.acquire()
+        try:
+            self.__lst.clear()
+            if not self.__lst:
+                self.__pullable.clear()
+        finally:
+            self.__lock.release()
+
+
 
 class Inference:
     def __init__(self, input, return_pipe=None, meta_dict={}):
@@ -110,6 +121,7 @@ class Inference:
         self.__return_pipe = return_pipe
         self.__data = None
         self.__result = None
+        self.ts = time()
 
     def get_input(self):
         return self.__input

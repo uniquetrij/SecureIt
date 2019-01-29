@@ -1,8 +1,27 @@
+from threading import Thread
+
 import cv2
 from flask import Flask, Response
 from flask_cors import CORS
 
+from tf_session.tf_session_utils import Pipe
+
+
 class FlaskMovieAPI:
+
+    @staticmethod
+    def get_default(name):
+        global fs
+        if not fs:
+            fs = FlaskMovieAPI()
+            Thread(target=fs.get_app().run, args=("0.0.0.0",9999)).start()
+
+        if not name in fs.__routes_pipe:
+            pipe = Pipe()
+            fs.create(name, pipe)
+
+        return fs.__routes_pipe[name]
+
 
     def __init__(self, app=None):
         if not app:
@@ -28,7 +47,6 @@ class FlaskMovieAPI:
                 yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + cv2.imencode('.jpg', image)[1].tostring() + b'\r\n')
 
-
             except GeneratorExit:
                 print("ERR")
                 return
@@ -45,3 +63,7 @@ class FlaskMovieAPI:
 
     def get_app(self):
         return self.__app
+
+
+fs = FlaskMovieAPI()
+Thread(target=fs.get_app().run, args=("0.0.0.0",9999)).start()

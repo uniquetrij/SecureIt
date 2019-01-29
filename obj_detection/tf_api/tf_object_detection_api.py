@@ -1,3 +1,4 @@
+import cv2
 import os
 import tarfile
 from os import path
@@ -10,6 +11,7 @@ import tensorflow as tf
 
 import data.obj_detection.tf_api.data.path as data_path
 import data.obj_detection.tf_api.pretrained.path as pretrained_path
+from flask_movie.flask_movie_api import FlaskMovieAPI
 from obj_detection.obj_detection_utils import InferedDetections
 from obj_detection.tf_api.object_detection.utils import label_map_util
 from obj_detection.tf_api.object_detection.utils import ops as utils_ops
@@ -187,6 +189,7 @@ class TFObjectDetectionAPI:
                 self.__in_pipe.pull_wait()
 
     def __job(self, inference):
+
         self.__out_pipe.push(
             (self.__tf_sess.run(self.__tensor_dict, feed_dict={self.__image_tensor: inference.get_data()}), inference))
 
