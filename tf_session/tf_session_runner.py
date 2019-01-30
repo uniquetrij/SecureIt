@@ -39,11 +39,11 @@ class SessionRunner:
 
     def __start(self):
         while self.__thread:
-            ret, sess_fnc = self.__in_pipe.pull()
+            ret, sess_runnable = self.__in_pipe.pull()
             if ret:
-                if type(sess_fnc) is not SessionRunnable:
-                    raise Exception("Pipe elements must be a SessionFunction")
-                sess_fnc.execute(self.__tf_sess)
+                if type(sess_runnable) is not SessionRunnable:
+                    raise Exception("Pipe elements must be a SessionRunnable")
+                sess_runnable.execute(self.__tf_sess)
             else:
                 self.__in_pipe.pull_wait()
 

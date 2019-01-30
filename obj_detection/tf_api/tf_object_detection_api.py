@@ -189,7 +189,6 @@ class TFObjectDetectionAPI:
                 self.__in_pipe.pull_wait()
 
     def __job(self, inference):
-
         self.__out_pipe.push(
             (self.__tf_sess.run(self.__tensor_dict, feed_dict={self.__image_tensor: inference.get_data()}), inference))
 

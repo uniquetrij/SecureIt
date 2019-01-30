@@ -18,7 +18,7 @@ class VideoStreamer:
 
 
 class Pipe:
-    def __init__(self, process=None, limit=None):
+    def __init__(self, process=None, limit=1):
         self.__lst = []
         self.__lock = Lock()
         self.__closed = False
@@ -122,6 +122,7 @@ class Inference:
         self.__data = None
         self.__result = None
         self.ts = time()
+        self.seq = None
 
     def get_input(self):
         return self.__input

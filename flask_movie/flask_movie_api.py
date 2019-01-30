@@ -65,5 +65,5 @@ class FlaskMovieAPI:
         return self.__app
 
 
-fs = FlaskMovieAPI()
-Thread(target=fs.get_app().run, args=("0.0.0.0",9999)).start()
+# fs = FlaskMovieAPI()
+# Thread(target=fs.get_app().run, args=("0.0.0.0",9999)).start()

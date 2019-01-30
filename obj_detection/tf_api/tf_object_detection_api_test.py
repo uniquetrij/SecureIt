@@ -9,9 +9,9 @@ from obj_detection.tf_api.tf_object_detection_api import TFObjectDetectionAPI, \
 from tf_session.tf_session_runner import SessionRunner
 from tf_session.tf_session_utils import Inference
 
-# cap = cv2.VideoCapture(-1)
+cap = cv2.VideoCapture(2)
 # cap = cv2.VideoCapture(videos_path.get()+'/Hitman Agent 47 - car chase scene HD.mp4')
-cap = cv2.VideoCapture("rtsp://admin:admin123@192.168.0.3")
+# cap = cv2.VideoCapture("rtsp://admin:admin123@192.168.0.3")
 
 session_runner = SessionRunner()
 while True:
@@ -23,16 +23,25 @@ detection = TFObjectDetectionAPI(PRETRAINED_faster_rcnn_inception_v2_coco_2018_0
 detector_ip = detection.get_in_pipe()
 detector_op = detection.get_out_pipe()
 detection.use_session_runner(session_runner)
-detection.use_threading()
+# detection.use_threading()
 session_runner.start()
 detection.run()
 
 def read():
+    seq = 0
     while True:
         ret, image = cap.read()
         if not ret:
             continue
-        detector_ip.push(Inference(image.copy()))
+        # detector_ip.push(Inference(image.copy()))
+        inference = Inference(image.copy())
+        inference.seq=seq
+        if not detector_ip.push(inference):
+            detector_ip.push_wait()
+            seq-=1
+        else:
+            seq+=1
+
 
 def run():
     while True:
@@ -43,7 +52,7 @@ def run():
             frame = i_dets.get_annotated()
             cv2.imshow("annotated", i_dets.get_annotated())
             cv2.waitKey(1)
+            # print(inference.seq)
 
 Thread(target=run).start()
-sleep(5)
 Thread(target=read).start()
