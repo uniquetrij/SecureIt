@@ -1,10 +1,7 @@
-import sys
-
 import threading
 from os.path import dirname, realpath
 from threading import Thread
 import tensorflow as tf
-
 from tf_session.tf_session_utils import Pipe
 
 
@@ -13,13 +10,13 @@ class SessionRunner:
     __config.gpu_options.allow_growth = True
     __counter = 0
 
-    def __init__(self):
+    def __init__(self, skip=False):
         self.__self_dir_path = dirname(realpath(__file__))
         self.__thread = None
         self.__pause_resume = None
         self.__tf_sess = tf.Session(config=self.__config)
         self.__in_pipe = Pipe()
-        self.__threading = threading
+        self.__skip = skip
 
     def get_in_pipe(self):
         return self.__in_pipe
@@ -39,13 +36,13 @@ class SessionRunner:
 
     def __start(self):
         while self.__thread:
-            ret, sess_runnable = self.__in_pipe.pull()
+            self.__in_pipe.pull_wait()
+            ret, sess_runnable = self.__in_pipe.pull(self.__skip)
             if ret:
                 if type(sess_runnable) is not SessionRunnable:
                     raise Exception("Pipe elements must be a SessionRunnable")
                 sess_runnable.execute(self.__tf_sess)
-            else:
-                self.__in_pipe.pull_wait()
+
 
 class SessionRunnable:
     def __init__(self, job_fnc, args_dict, run_on_thread=False):

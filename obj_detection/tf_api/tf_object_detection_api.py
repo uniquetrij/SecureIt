@@ -181,12 +181,11 @@ class TFObjectDetectionAPI:
                 self.__out_pipe.close()
                 return
 
+            self.__in_pipe.pull_wait()
             ret, inference = self.__in_pipe.pull(self.__flush_pipe_on_read)
             if ret:
                 self.__session_runner.get_in_pipe().push(
                     SessionRunnable(self.__job, inference, run_on_thread=self.__run_session_on_thread))
-            else:
-                self.__in_pipe.pull_wait()
 
     def __job(self, inference):
         self.__out_pipe.push(

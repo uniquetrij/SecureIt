@@ -51,7 +51,7 @@ class FlaskMovieAPI:
                 print("ERR")
                 return
             except:
-                print("ERROR")
+                print("feed not available yet...")
                 pass
 
     def create(self, route, pipe, default_img=None, timeout=None):
