@@ -101,7 +101,7 @@ class Pipe:
     def is_full(self):
         if not self.__limit:
             return False
-        return len(self.__lst)>=self.__limit
+        return len(self.__lst) >= self.__limit
 
     def flush(self):
         self.__lock.acquire()
@@ -113,11 +113,13 @@ class Pipe:
             self.__lock.release()
 
 
-
 class Inference:
-    def __init__(self, input, return_pipe=None, meta_dict={}):
+    def __init__(self, input, return_pipe=None, meta_dict=None):
         self.__input = input
         self.__meta_dict = meta_dict
+        if not self.__meta_dict:
+            self.__meta_dict = {}
+
         self.__return_pipe = return_pipe
         self.__data = None
         self.__result = None
@@ -147,4 +149,21 @@ class Inference:
     def get_data(self):
         return self.__data
 
+    def set_meta(self, key, val):
+        if key not in self.__meta_dict.keys():
+            self.__meta_dict[key] = val
+        else:
+            raise Exception
 
+    def set_meta_force(self, key, val):
+        self.__meta_dict[key] = val
+
+    def get_meta(self, key):
+        if key in self.__meta_dict.keys():
+            return self.__meta_dict[key]
+        return None
+
+    def get_meta_or_default(self, key, val):
+        if key in self.__meta_dict.keys():
+            return self.__meta_dict[key]
+        return val

@@ -1,5 +1,6 @@
 from threading import Thread
 from time import sleep
+import numpy as np
 
 import cv2
 from data.obj_tracking.videos import path as videos_path
@@ -27,20 +28,29 @@ detection.use_session_runner(session_runner)
 session_runner.start()
 detection.run()
 
+
+
 def read():
-    seq = 0
+    lst = []
+    skip = 2
+    count = 0
     while True:
+        count += 1
         ret, image = cap.read()
-        if not ret:
+        if not ret or count%skip != 0:
             continue
-        # detector_ip.push(Inference(image.copy()))
-        inference = Inference(image.copy())
-        inference.seq=seq
-        if not detector_ip.push(inference):
-            detector_ip.push_wait()
-            seq-=1
-        else:
-            seq+=1
+
+        detector_ip.push_wait()
+        inference = Inference(image)
+        detector_ip.push(inference)
+
+        # lst.append(image)
+        # if len(lst) == 10:
+        #     detector_ip.push_wait()
+        #     inference = Inference(lst)
+        #     detector_ip.push(inference)
+        #     lst = []
+
 
 
 def run():
@@ -48,11 +58,21 @@ def run():
         detector_op.pull_wait()
         ret, inference = detector_op.pull(True)
         if ret:
+
             i_dets = inference.get_result()
             frame = i_dets.get_annotated()
             cv2.imshow("annotated", i_dets.get_annotated())
             cv2.waitKey(1)
-            # print(inference.seq)
+            # sleep(0.1)
+
+
+            # for i in range(len(inference.get_result())):
+            #     i_dets = inference.get_result()[i]
+            #     frame = i_dets.get_annotated()
+            #     cv2.imshow("annotated", i_dets.get_annotated())
+            #     cv2.waitKey(1)
+            #     sleep(0.1)
+
 
 Thread(target=run).start()
 Thread(target=read).start()

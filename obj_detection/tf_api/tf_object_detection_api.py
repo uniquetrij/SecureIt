@@ -97,27 +97,56 @@ class TFObjectDetectionAPI:
             self.__graph_prefix = graph_prefix + '/'
 
     def __in_pipe_process(self, inference):
-        image = inference.get_input()
-        data = np.expand_dims(image, axis=0)
+        images = inference.get_input()
+        images=np.array(images)
+        if len(images.shape) == 3:
+            data = np.expand_dims(images, axis=0)
+            inference.set_meta('expand_dims', True)
+        else:
+            data = images
+            inference.set_meta('expand_dims', False)
+
         inference.set_data(data)
         return inference
 
     def __out_pipe_process(self, result):
         result, inference = result
-        num_detections = int(result['num_detections'][0])
-        detection_classes = result['detection_classes'][0][:num_detections].astype(np.uint8)
-        detection_boxes = result['detection_boxes'][0][:num_detections]
-        detection_scores = result['detection_scores'][0][:num_detections]
-        if 'detection_masks' in result:
-            detection_masks = result['detection_masks'][0][:num_detections]
-        else:
-            detection_masks = None
 
-        result = InferedDetections(inference.get_input(), num_detections, detection_boxes, detection_classes,
-                                   detection_scores,
-                                   masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
-                                   annotator=self.annotate)
-        inference.set_result(result)
+        if inference.get_meta('expand_dims'):
+            num_detections = int(result['num_detections'][0])
+            detection_classes = result['detection_classes'][0][:num_detections].astype(np.uint8)
+            detection_boxes = result['detection_boxes'][0][:num_detections]
+            detection_scores = result['detection_scores'][0][:num_detections]
+            if 'detection_masks' in result:
+                detection_masks = result['detection_masks'][0][:num_detections]
+            else:
+                detection_masks = None
+
+            results = InferedDetections(inference.get_input(), num_detections, detection_boxes, detection_classes,
+                                       detection_scores,
+                                       masks=detection_masks, is_normalized=True, get_category_fnc=self.get_category,
+                                       annotator=self.annotate)
+
+        else:
+            results = []
+            for i in range(len(result['num_detections'])):
+                num_detections = int(result['num_detections'][i])
+                detection_classes = result['detection_classes'][i][:num_detections].astype(np.uint8)
+                detection_boxes = result['detection_boxes'][i][:num_detections]
+                detection_scores = result['detection_scores'][i][:num_detections]
+                if 'detection_masks' in result:
+                    detection_masks = result['detection_masks'][i][:num_detections]
+                else:
+                    detection_masks = None
+
+                results.append(InferedDetections(inference.get_input()[i], num_detections, detection_boxes, detection_classes,
+                                           detection_scores,
+                                           masks=detection_masks, is_normalized=True,
+                                           get_category_fnc=self.get_category,
+                                           annotator=self.annotate))
+
+
+        inference.set_result(results)
         if inference.get_return_pipe():
             return '\0'
 
